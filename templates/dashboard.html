@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Instalaz{% endblock %}
+
+{% block content %}
+<!-- Compact Header -->
+<section class="relative bg-gradient-to-br from-ig-purple via-ig-secondary to-ig-primary text-white py-6">
+    <div class="relative max-w-6xl mx-auto px-4" x-data="dashboard()">
+        <!-- User Profile Card - Compact -->
+        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
+            <div class="flex items-center space-x-4">
+                <!-- Profile Picture -->
+                <div class="relative">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-ig-yellow to-ig-accent p-1">
+                        <img src="{{ user_info.profile_pic_url or '/static/default-avatar.png' }}" 
+                             alt="Profile" 
+                             class="w-full h-full rounded-full object-cover">
+                    </div>
+                    {% if user_info.is_verified %}
+                    <div class="absolute -bottom-1 -right-1 bg-ig-link rounded-full p-1">
+                        <i class="fas fa-check text-white text-xs"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Profile Info -->
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <h2 class="text-lg font-bold text-white">@{{ user_info.username }}</h2>
+                        {% if user_info.is_business %}
+                        <span class="px-2 py-1 bg-white/20 text-white text-xs rounded-full">Business</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Stats - Horizontal -->
+                    <div class="flex items-center space-x-4 text-sm">
+                        <div class="text-center">
+                            <span class="font-bold text-white">{{ user_info.media_count or 0 }}</span>
+                            <span class="text-gray-300 ml-1">Gönderi</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="font-bold text-white">{{ '{:,}'.format(user_info.follower_count or 0) }}</span>
+                            <span class="text-gray-300 ml-1">Takipçi</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="font-bold text-white">{{ '{:,}'.format(user_info.following_count or 0) }}</span>
+                            <span class="text-gray-300 ml-1">Takip</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="flex space-x-2">
+                    <a href="{{ url_for('upload') }}" class="bg-white text-ig-primary px-4 py-2 rounded-lg font-semibold hover:scale-105 transition-transform text-sm">
+                        <i class="fas fa-plus mr-1"></i>
+                        Yeni İçerik
+                    </a>
+                    <button class="bg-white/10 border border-white/30 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/20 transition-all text-sm">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Dashboard Content -->
+<div class="max-w-6xl mx-auto px-4 py-6 -mt-4 relative z-10">
+    
+    <!-- Quick Upload Section - Compact -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <!-- Story Upload -->
+        <div class="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl cursor-pointer group transform hover:-translate-y-1 transition-all duration-300" @click="quickUpload('story')">
+            <div class="text-center">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-full gradient-instagram flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-circle-plus text-white text-lg"></i>
+                </div>
+                <h3 class="text-lg font-bold text-ig-dark mb-1">Story Yükle</h3>
+                <p class="text-ig-gray text-sm">Max 15 saniye, 9:16</p>
+            </div>
+        </div>
+        
+        <!-- Reels Upload -->
+        <div class="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl cursor-pointer group transform hover:-translate-y-1 transition-all duration-300" @click="quickUpload('reel')">
+            <div class="text-center">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-video text-white text-lg"></i>
+                </div>
+                <h3 class="text-lg font-bold text-ig-dark mb-1">Reels Yükle</h3>
+                <p class="text-ig-gray text-sm">3-90 saniye, 9:16</p>
+            </div>
+        </div>
+        
+        <!-- Post Upload -->
+        <div class="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl cursor-pointer group transform hover:-translate-y-1 transition-all duration-300" @click="quickUpload('post')">
+            <div class="text-center">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-orange-400 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-image text-white text-lg"></i>
+                </div>
+                <h3 class="text-lg font-bold text-ig-dark mb-1">Post Yükle</h3>
+                <p class="text-ig-gray text-sm">Fotoğraf/video, 1:1</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity - Compact -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Upload Queue -->
+        <div class="bg-white rounded-xl p-5 shadow-lg">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full gradient-instagram flex items-center justify-center">
+                        <i class="fas fa-clock text-white text-sm"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-ig-dark">Yükleme Kuyruğu</h3>
+                </div>
+                <a href="{{ url_for('queue_page') }}" class="text-ig-link hover:scale-105 transition-transform font-medium text-sm">
+                    Tümünü Gör <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            
+            <div class="space-y-3" x-show="recentUploads.length > 0" x-transition>
+                <template x-for="upload in recentUploads.slice(0, 3)" :key="upload.id">
+                    <div class="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-300">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-ig-purple to-ig-secondary overflow-hidden">
+                            <img :src="upload.thumbnail" :alt="upload.filename" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-ig-dark text-sm truncate" x-text="upload.filename"></p>
+                            <div class="flex items-center space-x-2 text-xs text-ig-gray">
+                                <span class="px-2 py-1 bg-ig-primary/10 text-ig-primary rounded text-xs" x-text="upload.type.toUpperCase()"></span>
+                                <span x-text="upload.status"></span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <template x-if="upload.status === 'processing'">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin mb-1"></div>
+                                    <span class="text-xs text-blue-600 font-medium">İşleniyor</span>
+                                </div>
+                            </template>
+                            <template x-if="upload.status === 'uploading'">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-6 h-6 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin mb-1"></div>
+                                    <span class="text-xs text-purple-600 font-medium">Yükleniyor</span>
+                                </div>
+                            </template>
+                            <template x-if="upload.status === 'completed'">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mb-1">
+                                        <i class="fas fa-check text-green-600 text-xs"></i>
+                                    </div>
+                                    <span class="text-xs text-green-600 font-medium">Tamamlandı</span>
+                                </div>
+                            </template>
+                            <template x-if="upload.status === 'failed'">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mb-1">
+                                        <i class="fas fa-times text-red-600 text-xs"></i>
+                                    </div>
+                                    <span class="text-xs text-red-600 font-medium">Başarısız</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <div x-show="recentUploads.length === 0" x-transition class="text-center py-8">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                    <i class="fas fa-inbox text-lg text-gray-400"></i>
+                </div>
+                <h4 class="font-medium text-ig-dark mb-1 text-sm">Henüz yükleme yok</h4>
+                <p class="text-ig-gray text-xs">İlk içeriğinizi yükleyin</p>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="bg-white rounded-xl p-5 shadow-lg">
+            <div class="flex items-center space-x-2 mb-4">
+                <div class="w-8 h-8 rounded-full gradient-instagram flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white text-sm"></i>
+                </div>
+                <h3 class="text-lg font-bold text-ig-dark">İstatistikler</h3>
+            </div>
+            
+            <div class="space-y-3">
+                <!-- Today's Uploads -->
+                <div class="flex items-center justify-between p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-all">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                            <i class="fas fa-calendar-day text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-ig-dark text-sm">Bugün</p>
+                            <p class="text-xs text-blue-600">Son 24 saat</p>
+                        </div>
+                    </div>
+                    <span class="text-xl font-bold text-blue-600" x-text="stats.todayUploads"></span>
+                </div>
+                
+                <!-- Weekly Uploads -->
+                <div class="flex items-center justify-between p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-all">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
+                            <i class="fas fa-calendar-week text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-ig-dark text-sm">Bu Hafta</p>
+                            <p class="text-xs text-green-600">Son 7 gün</p>
+                        </div>
+                    </div>
+                    <span class="text-xl font-bold text-green-600" x-text="stats.weeklyUploads"></span>
+                </div>
+                
+                <!-- Storage Used -->
+                <div class="flex items-center justify-between p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
+                            <i class="fas fa-hdd text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-ig-dark text-sm">Depolama</p>
+                            <p class="text-xs text-purple-600">Kullanılan alan</p>
+                        </div>
+                    </div>
+                    <span class="text-lg font-bold text-purple-600" x-text="stats.storageUsed"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tips Section - Compact -->
+    <div class="mt-6 bg-gradient-to-br from-purple-100 via-pink-50 to-purple-100 rounded-xl p-4 border border-purple-200 shadow-lg">
+        <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <i class="fas fa-lightbulb text-white text-sm"></i>
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center space-x-2 mb-2">
+                    <h4 class="text-lg font-bold text-purple-900">Pro İpucu</h4>
+                    <span class="px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full">Tip</span>
+                </div>
+                <p class="text-purple-800 text-sm leading-relaxed">
+                    4K videolarınızı yüklerken, Instagram'ın otomatik sıkıştırmasını önlemek için 
+                    bitrate'i 25 Mbps'den düşük tutun. <strong>Instalaz bunu otomatik optimize eder!</strong>
+                </p>
+                <div class="mt-2 flex items-center text-xs text-purple-600">
+                    <i class="fas fa-magic mr-1"></i>
+                    <span>Otomatik optimizasyon aktif</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function dashboard() {
+    return {
+        recentUploads: [],
+        stats: {
+            todayUploads: 0,
+            weeklyUploads: 0,
+            storageUsed: '0 GB'
+        },
+        
+        async init() {
+            console.log('Dashboard init() called');
+            console.log('Initial recentUploads state:', this.recentUploads);
+            
+            // Load recent uploads
+            this.loadRecentUploads();
+            
+            // Load stats
+            this.loadStats();
+            
+            // Refresh every 5 seconds for real-time updates
+            setInterval(() => {
+                this.loadRecentUploads();
+                this.loadStats();
+            }, 5000);
+        },
+        
+        async loadRecentUploads() {
+            try {
+                const response = await fetch('/api/queue/tasks');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Dashboard loadRecentUploads - API response:', data);
+                    if (data.success) {
+                        const previousUploads = [...this.recentUploads];
+                        this.recentUploads = data.tasks.map(task => ({
+                            id: task.id,
+                            filename: task.filename,
+                            type: task.type,
+                            status: task.status,
+                            thumbnail: this.getThumbnailForType(task.type),
+                            created_at: task.created_at,
+                            error: task.error,
+                            media_id: task.media_id
+                        }));
+                        console.log('Dashboard loadRecentUploads - Mapped recentUploads:', this.recentUploads);
+                        
+                        // Force Alpine.js reactivity update
+                        this.$nextTick(() => {
+                            console.log('Dashboard $nextTick - recentUploads length:', this.recentUploads.length);
+                        });
+                        
+                        // Check for status changes and show notifications
+                        this.recentUploads.forEach(upload => {
+                            const previous = previousUploads.find(p => p.id === upload.id);
+                            if (previous && previous.status !== upload.status) {
+                                this.showStatusNotification(upload, previous.status);
+                            }
+                        });
+                    } else {
+                        console.error('Error loading queue:', data.message);
+                        this.recentUploads = [];
+                    }
+                } else {
+                    console.error('Failed to fetch queue data');
+                    this.recentUploads = [];
+                }
+            } catch (error) {
+                console.error('Error loading uploads:', error);
+                this.recentUploads = [];
+            }
+        },
+        
+        showStatusNotification(upload, previousStatus) {
+            if (upload.status === 'processing' && previousStatus !== 'processing') {
+                this.showToast(`${upload.filename} işlenmeye başladı`, 'info');
+            } else if (upload.status === 'uploading' && previousStatus !== 'uploading') {
+                this.showToast(`${upload.filename} Instagram'a yükleniyor`, 'info');
+            } else if (upload.status === 'completed' && previousStatus !== 'completed') {
+                this.showToast(`${upload.filename} başarıyla yüklendi!`, 'success');
+            } else if (upload.status === 'failed' && previousStatus !== 'failed') {
+                this.showToast(`${upload.filename} yüklenemedi`, 'error');
+            }
+        },
+        
+        showToast(message, type = 'info') {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white transform translate-x-full transition-transform duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            }`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        },
+        
+        getThumbnailForType(type) {
+            const thumbnails = {
+                'story': '/static/sample-thumb.jpg',
+                'reel': '/static/sample-thumb-2.jpg',
+                'post': '/static/sample-thumb.jpg'
+            };
+            return thumbnails[type] || '/static/sample-thumb.jpg';
+        },
+        
+        async loadStats() {
+            try {
+                const response = await fetch('/api/user/stats');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        this.stats = data.stats;
+                    } else {
+                        console.error('Error loading stats:', data.message);
+                        this.stats = {
+                            todayUploads: 0,
+                            weeklyUploads: 0,
+                            storageUsed: '0 GB'
+                        };
+                    }
+                } else {
+                    console.error('Failed to fetch stats');
+                    this.stats = {
+                        todayUploads: 0,
+                        weeklyUploads: 0,
+                        storageUsed: '0 GB'
+                    };
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                this.stats = {
+                    todayUploads: 0,
+                    weeklyUploads: 0,
+                    storageUsed: '0 GB'
+                };
+            }
+        },
+        
+        quickUpload(type) {
+            window.location.href = `/upload?type=${type}`;
+        }
+    }
+}
+
+// Refresh user info
+document.querySelector('button:has(.fa-sync-alt)').addEventListener('click', async function() {
+    this.querySelector('i').classList.add('animate-spin');
+    
+    try {
+        const response = await fetch('/api/user/refresh', { method: 'POST' });
+        if (response.ok) {
+            showToast('Bilgiler güncellendi', 'success');
+            setTimeout(() => location.reload(), 1000);
+        }
+    } catch (error) {
+        showToast('Güncelleme başarısız', 'error');
+    }
+    
+    this.querySelector('i').classList.remove('animate-spin');
+});
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Add floating animation to decorative elements
+    window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const heroSection = document.querySelector('section:first-child');
+        if (heroSection && scrolled < window.innerHeight) {
+            const parallaxElements = heroSection.querySelectorAll('.absolute');
+            parallaxElements.forEach(element => {
+                if (element.classList.contains('blur-xl')) {
+                    element.style.transform = `translateY(${scrolled * 0.2}px)`;
+                }
+            });
+        }
+    });
+    
+    // Add hover effects to stat cards
+    document.querySelectorAll('.group.cursor-pointer').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Add stagger animation to upload items
+    const uploadItems = document.querySelectorAll('[x-show="recentUploads.length > 0"] > template + div');
+    uploadItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.1}s`;
+        item.classList.add('animate-slideInUp');
+    });
+    
+    // Add pulse animation to gradient backgrounds
+    const gradientElements = document.querySelectorAll('.gradient-instagram');
+    gradientElements.forEach(element => {
+        setInterval(() => {
+            element.style.transform = 'scale(1.02)';
+            setTimeout(() => {
+                element.style.transform = 'scale(1)';
+            }, 200);
+        }, 3000 + Math.random() * 2000);
+    });
+</script>
+
+<style>
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slideInUp {
+    animation: slideInUp 0.6s ease-out forwards;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.gradient-instagram {
+    transition: transform 0.3s ease;
+}
+
+/* Enhanced shadow effects */
+.shadow-3xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Backdrop blur support */
+.backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+}
+
+/* Custom border width */
+.border-3 {
+    border-width: 3px;
+}
+</style>
+{% endblock %}

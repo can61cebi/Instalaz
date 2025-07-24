@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Instalaz - Instagram Content Management Platform{% endblock %}</title>
+    
+<!-- Tailwind CSS v3 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'ig-purple': '#833AB4',
+                        'ig-primary': '#C13584',
+                        'ig-secondary': '#E1306C',
+                        'ig-accent': '#F77737',
+                        'ig-yellow': '#FCAF45',
+                        'ig-dark': '#000000',
+                        'ig-dark-secondary': '#262626',
+                        'ig-light': '#FFFFFF',
+                        'ig-light-secondary': '#FAFAFA',
+                        'ig-text': '#262626',
+                        'ig-text-secondary': '#8E8E8E',
+                        'ig-gray': '#8E8E8E',
+                        'ig-border': '#DBDBDB',
+                        'ig-error': '#ED4956',
+                        'ig-success': '#4CAF50',
+                        'ig-link': '#0095F6',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .ig-gradient {
+                background: linear-gradient(45deg, #833AB4, #C13584, #E1306C, #FCAF45, #F77737);
+            }
+            
+            .ig-gradient-text {
+                @apply bg-gradient-to-r from-ig-purple via-ig-primary to-ig-secondary;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            
+            .ig-button {
+                @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95;
+            }
+            
+            .ig-input {
+                @apply w-full px-4 py-3 rounded-lg border border-ig-border bg-ig-light-secondary 
+                       focus:outline-none focus:ring-2 focus:ring-ig-link focus:border-transparent
+                       placeholder-ig-text-secondary text-ig-text;
+            }
+            
+            .ig-card {
+                @apply bg-white rounded-xl shadow-sm border border-ig-border p-6 
+                       hover:shadow-md transition-shadow duration-200;
+            }
+            
+            .dark .ig-card {
+                @apply bg-ig-dark-secondary border-gray-700;
+            }
+
+            .dark .ig-text {
+                @apply text-ig-light;
+            }
+
+            .dark .ig-text-secondary {
+                @apply text-gray-400;
+            }
+            
+            .dark .ig-input {
+                @apply bg-ig-dark border-gray-700 text-white placeholder-gray-500;
+            }
+            
+            .spinner {
+                border: 3px solid rgba(0, 0, 0, 0.1);
+                border-radius: 50%;
+                border-top: 3px solid #E1306C;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+            }
+
+            .dark .spinner {
+                border-top-color: #E1306C;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            /* Ensure feature sections have proper z-index and positioning */
+            #features {
+                position: relative;
+                z-index: 10;
+                background-color: #f9fafb;
+            }
+            
+            /* Glass Morphism Phone Effect */
+            .phone-mockup {
+                background: rgba(255, 255, 255, 0.15) !important;
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            }
+            
+            .phone-mockup .bg-ig-white {
+                background: rgba(255, 255, 255, 0.95) !important;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+            
+            /* Better text contrast in phone mockup */
+            .phone-mockup .text-ig-dark {
+                color: #374151 !important;
+            }
+            
+            /* Enhanced story ring with glass effect */
+            .story-ring {
+                background: linear-gradient(45deg, #833AB4, #C13584, #E1306C, #F77737);
+                padding: 2px;
+                border-radius: 50%;
+                background-clip: padding-box;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Enhanced gradient for Instagram elements */
+            .gradient-instagram {
+                background: linear-gradient(135deg, #833AB4 0%, #C13584 25%, #E1306C 50%, #F77737 75%, #FCAF45 100%);
+                background-size: 200% 200%;
+                animation: gradientShift 3s ease infinite;
+            }
+            
+            @keyframes gradientShift {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+            
+            /* Floating animation */
+            @keyframes float {
+                0%, 100% { transform: translateY(0px) rotate(6deg); }
+                50% { transform: translateY(-10px) rotate(6deg); }
+            }
+            
+            .phone-mockup {
+                animation: float 3s ease-in-out infinite;
+            }
+        }
+    </style>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Alpine.js for interactions -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- SweetAlert2 for notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-ig-light-secondary dark:bg-ig-dark text-ig-text dark:text-white min-h-screen"
+        x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
+        x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
+        :class="{ 'dark': darkMode }">
+    
+    <!-- Navigation -->
+    {% if session.get('username') %}
+    <nav class="bg-white dark:bg-ig-dark-secondary border-b border-ig-border dark:border-gray-800 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3">
+                    <div class="ig-gradient p-2 rounded-lg">
+                        <i class="fab fa-instagram text-white text-2xl"></i>
+                    </div>
+                    <span class="font-bold text-xl hidden sm:block">Content Manager</span>
+                </a>
+                
+                <!-- Navigation Links -->
+                <div class="flex items-center space-x-6">
+                    <a href="{{ url_for('dashboard') }}" class="hover:text-ig-link">
+                        <i class="fas fa-home text-xl"></i>
+                    </a>
+                    <a href="{{ url_for('upload') }}" class="hover:text-ig-link">
+                        <i class="fas fa-plus-square text-xl"></i>
+                    </a>
+                    <a href="{{ url_for('queue_page') }}" class="hover:text-ig-link relative">
+                        <i class="fas fa-clock text-xl"></i>
+                        <span class="absolute -top-2 -right-2 bg-ig-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" 
+                              x-show="$store.queue.count > 0" x-text="$store.queue.count"></span>
+                    </a>
+                    
+                    <!-- Dark Mode Toggle -->
+                    <button @click="darkMode = !darkMode" class="hover:text-ig-link">
+                        <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
+                    </button>
+                    
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 hover:opacity-80">
+                            <div class="w-8 h-8 rounded-full ig-gradient"></div>
+                            <span class="hidden sm:block font-medium">{{ session.username }}</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        
+                        <div x-show="open" @click.away="open = false" x-transition
+                             class="absolute right-0 mt-2 w-48 bg-white dark:bg-ig-dark-secondary rounded-lg shadow-lg border border-ig-border dark:border-gray-700">
+                            <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-t-lg">
+                                <i class="fas fa-user-circle mr-2"></i> Profil
+                            </a>
+                            <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <i class="fas fa-cog mr-2"></i> Ayarlar
+                            </a>
+                            <hr class="border-ig-border dark:border-gray-700">
+                            <button onclick="logout()" class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-b-lg text-ig-error">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Çıkış Yap
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <!-- Main Content -->
+    <main class="{% if session.get('username') %}pt-8{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    {% if session.get('username') %}
+    <footer class="mt-16 py-8 border-t border-ig-border dark:border-gray-800">
+        <div class="max-w-6xl mx-auto px-4 text-center text-ig-text-secondary text-sm">
+            <p>&copy; 2024 Instalaz. Instagram Content Management Platform - Professional Instagram Management Solution</p>
+        </div>
+    </footer>
+    {% endif %}
+    
+    <!-- Global Scripts -->
+    <script>
+        // Alpine.js store for global state
+            document.addEventListener('alpine:init', () => {
+                Alpine.store('queue', {
+                    count: 0,
+                    updateCount() {
+                        // Update queue count from server
+                        fetch('/api/queue/count')
+                            .then(r => r.json())
+                            .then(data => this.count = data.count)
+                            .catch(() => {});
+                    }
+                });
+                
+                // Check queue every 3 seconds for real-time updates
+                setInterval(() => Alpine.store('queue').updateCount(), 3000);
+                Alpine.store('queue').updateCount(); // İlk yüklemede de çalıştır
+            });
+        
+        // Global functions
+        async function logout() {
+            const result = await Swal.fire({
+                title: 'Çıkış yapmak istediğinize emin misiniz?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, çıkış yap',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#ED4956'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch('/api/logout', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.href = data.redirect;
+                    }
+
+                } catch (error) {
+                    Swal.fire('Hata', 'Çıkış yapılırken bir hata oluştu', 'error');
+                }
+            }
+        }
+        
+        // Toast notification helper
+        function showToast(message, type = 'info') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+            
+            Toast.fire({
+                icon: type,
+                title: message
+            });
+        }
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Format duration
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

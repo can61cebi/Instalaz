@@ -1,0 +1,692 @@
+{% extends "base.html" %}
+
+{% block title %}İçerik Yükle - Instalaz{% endblock %}
+
+{% block extra_head %}
+<style>
+    .dropzone {
+        background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%23DBDBDB' stroke-width='4' stroke-dasharray='10' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+    }
+    
+    .dropzone.dragover {
+        background-color: rgba(131, 58, 180, 0.05);
+        border-color: #833AB4;
+    }
+    
+    .mention-dropdown {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .video-preview {
+        max-height: 400px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8" x-data="uploadForm()">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Yeni İçerik Yükle</h1>
+        <p class="text-ig-text-secondary">4K videolar ve yüksek kaliteli fotoğraflar için optimize edildi</p>
+    </div>
+    
+    <!-- Upload Type Selector -->
+    <div class="ig-card mb-6">
+        <h3 class="font-semibold mb-4">İçerik Tipi Seçin</h3>
+        <div class="grid grid-cols-3 gap-4">
+            <button @click="uploadType = 'story'" 
+                    :class="uploadType === 'story' ? 'border-2 border-ig-link bg-ig-link/10' : 'border border-ig-border hover:border-gray-400'"
+                    class="p-4 rounded-lg transition-all">
+                <i class="fas fa-circle-plus text-2xl mb-2" :class="uploadType === 'story' ? 'text-ig-link' : ''"></i>
+                <p class="font-medium">Story</p>
+                <p class="text-xs text-ig-text-secondary mt-1">Max 15 sn, 9:16</p>
+            </button>
+            
+            <button @click="uploadType = 'reel'" 
+                    :class="uploadType === 'reel' ? 'border-2 border-purple-500 bg-purple-500/10' : 'border border-ig-border hover:border-gray-400'"
+                    class="p-4 rounded-lg transition-all">
+                <i class="fas fa-video text-2xl mb-2" :class="uploadType === 'reel' ? 'text-purple-500' : ''"></i>
+                <p class="font-medium">Reels</p>
+                <p class="text-xs text-ig-text-secondary mt-1">3-90 sn, 9:16</p>
+            </button>
+            
+            <button @click="uploadType = 'post'" 
+                    :class="uploadType === 'post' ? 'border-2 border-pink-500 bg-pink-500/10' : 'border border-ig-border hover:border-gray-400'"
+                    class="p-4 rounded-lg transition-all">
+                <i class="fas fa-image text-2xl mb-2" :class="uploadType === 'post' ? 'text-pink-500' : ''"></i>
+                <p class="font-medium">Post</p>
+                <p class="text-xs text-ig-text-secondary mt-1">Foto/Video, 1:1</p>
+            </button>
+        </div>
+    </div>
+    
+    <!-- File Upload Area -->
+    <div class="ig-card mb-6">
+        <h3 class="font-semibold mb-4">Medya Yükle</h3>
+        
+        <!-- Dropzone -->
+        <div x-show="!selectedFile" 
+             @drop.prevent="handleDrop"
+             @dragover.prevent="dragover = true"
+             @dragleave.prevent="dragover = false"
+             :class="dragover ? 'dropzone dragover' : 'dropzone'"
+             class="relative rounded-lg p-12 text-center cursor-pointer transition-all"
+             @click="$refs.fileInput.click()">
+            
+            <div class="space-y-4">
+                <div class="w-20 h-20 mx-auto rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-ig-text-secondary"></i>
+                </div>
+                <div>
+                    <p class="text-lg font-medium">Dosyaları buraya sürükleyin</p>
+                    <p class="text-sm text-ig-text-secondary mt-1">veya seçmek için tıklayın</p>
+                </div>
+                <div class="text-xs text-ig-text-secondary">
+                    <p>Desteklenen formatlar: JPG, PNG, MP4, MOV</p>
+                    <p>Maksimum dosya boyutu: 4GB</p>
+                    <p class="text-ig-link mt-2">4K 60FPS videolar desteklenir!</p>
+                </div>
+            </div>
+            
+            <input type="file" 
+                   x-ref="fileInput" 
+                   @change="handleFileSelect"
+                   accept="image/*,video/*"
+                   class="hidden">
+        </div>
+        
+        <!-- File Preview -->
+        <div x-show="selectedFile" class="space-y-4">
+            <!-- Media Preview -->
+            <div class="relative rounded-lg overflow-hidden bg-black">
+                <!-- Image Preview -->
+                <img x-show="fileType === 'image'" 
+                     :src="previewUrl" 
+                     class="max-w-full mx-auto rounded-lg"
+                     style="max-height: 400px;">
+                
+                <!-- Video Preview -->
+                <video x-show="fileType === 'video'" 
+                       :src="previewUrl" 
+                       controls
+                       class="w-full video-preview">
+                </video>
+                
+                <!-- Remove Button -->
+                <button @click="removeFile" 
+                        class="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- File Info -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <i class="fas fa-file text-ig-text-secondary"></i>
+                    <div>
+                        <p class="text-xs text-ig-text-secondary">Dosya Adı</p>
+                        <p class="font-medium truncate" x-text="selectedFile.name"></p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <i class="fas fa-weight text-ig-text-secondary"></i>
+                    <div>
+                        <p class="text-xs text-ig-text-secondary">Boyut</p>
+                        <p class="font-medium" x-text="formatFileSize(selectedFile.size)"></p>
+                    </div>
+                </div>
+                
+                <div x-show="fileInfo" class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <i class="fas fa-info-circle text-ig-text-secondary"></i>
+                    <div>
+                        <p class="text-xs text-ig-text-secondary">Detaylar</p>
+                        <p class="font-medium" x-text="fileInfo"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Processing Warning for 4K -->
+            <div x-show="is4K" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-amber-600 dark:text-amber-400 mt-0.5 mr-3"></i>
+                    <div class="text-sm">
+                        <p class="font-medium text-amber-900 dark:text-amber-100">4K Video Tespit Edildi</p>
+                        <p class="text-amber-700 dark:text-amber-300 mt-1">
+                            Video Instagram için optimize edilecek. Bu işlem biraz zaman alabilir.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cover Image (for Reels/Videos) -->
+    <div x-show="uploadType === 'reel' || (uploadType === 'post' && fileType === 'video')" class="ig-card mb-6">
+        <h3 class="font-semibold mb-4">Kapak Fotoğrafı (Opsiyonel)</h3>
+        <div class="flex items-center space-x-4">
+            <button @click="$refs.coverInput.click()" 
+                    class="ig-button border border-ig-border hover:bg-gray-50 dark:hover:bg-gray-800">
+                <i class="fas fa-image mr-2"></i>
+                Kapak Seç
+            </button>
+            <input type="file" 
+                   x-ref="coverInput" 
+                   @change="handleCoverSelect"
+                   accept="image/*"
+                   class="hidden">
+            
+            <div x-show="coverFile" class="flex items-center space-x-2">
+                <img :src="coverPreview" class="w-16 h-16 rounded object-cover">
+                <button @click="removeCover" class="text-ig-error hover:text-red-700">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Caption & Details -->
+    <div class="ig-card mb-6">
+        <h3 class="font-semibold mb-4">Açıklama ve Detaylar</h3>
+        
+        <!-- Caption -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Açıklama</label>
+            <textarea x-model="caption" 
+                      @input="updateCharCount"
+                      rows="4" 
+                      class="ig-input resize-none"
+                      placeholder="Açıklama yazın..."
+                      maxlength="2200"></textarea>
+            <div class="flex justify-between mt-2 text-xs text-ig-text-secondary">
+                <span>Emoji ve hashtag kullanabilirsiniz</span>
+                <span><span x-text="charCount"></span>/2200</span>
+            </div>
+        </div>
+        
+        <!-- Mentions -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Kullanıcı Etiketle</label>
+            <div class="relative">
+                <input type="text" 
+                       x-model="mentionSearch"
+                       @input.debounce.500ms="searchUsers"
+                       @focus="showMentionDropdown = true"
+                       class="ig-input"
+                       placeholder="@kullanıcı ara...">
+                
+                <!-- Dropdown -->
+                <div x-show="showMentionDropdown && mentionResults.length > 0" 
+                     @click.away="showMentionDropdown = false"
+                     class="absolute z-10 w-full mt-2 bg-white dark:bg-ig-dark-secondary rounded-lg shadow-lg border border-ig-border dark:border-gray-700 mention-dropdown">
+                    <template x-for="user in mentionResults" :key="user.username">
+                        <button @click="addMention(user)" 
+                                class="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center space-x-3">
+                            <img :src="user.profile_pic_url" class="w-10 h-10 rounded-full">
+                            <div>
+                                <p class="font-medium" x-text="user.username"></p>
+                                <p class="text-xs text-ig-text-secondary" x-text="user.full_name"></p>
+                            </div>
+                            <i x-show="user.is_verified" class="fas fa-check-circle text-ig-link ml-auto"></i>
+                        </button>
+                    </template>
+                </div>
+            </div>
+            
+            <!-- Selected Mentions -->
+            <div x-show="mentions.length > 0" class="flex flex-wrap gap-2 mt-2">
+                <template x-for="mention in mentions" :key="mention.username">
+                    <div class="flex items-center space-x-2 px-3 py-1 bg-ig-link/10 rounded-full text-sm">
+                        <span>@<span x-text="mention.username"></span></span>
+                        <button @click="removeMention(mention.username)" class="text-ig-error hover:text-red-700">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Hashtags -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Hashtag'ler</label>
+            <input type="text" 
+                   x-model="hashtagInput"
+                   @keydown.enter.prevent="addHashtag"
+                   class="ig-input"
+                   placeholder="#hashtag ekle (Enter'a basın)">
+            <div x-show="hashtags.length > 0" class="flex flex-wrap gap-2 mt-2">
+                <template x-for="tag in hashtags" :key="tag">
+                    <div class="flex items-center space-x-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 rounded-full text-sm">
+                        <span x-text="tag"></span>
+                        <button @click="removeHashtag(tag)" class="text-purple-700 dark:text-purple-300 hover:text-purple-900">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Location -->
+        <div>
+            <label class="block text-sm font-medium mb-2">Konum</label>
+            <div class="relative">
+                <input type="text" 
+                       x-model="locationSearch"
+                       @input.debounce.500ms="searchLocations"
+                       @focus="showLocationDropdown = true"
+                       class="ig-input pl-10"
+                       placeholder="Konum ara...">
+                <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-ig-text-secondary"></i>
+                
+                <!-- Dropdown -->
+                <div x-show="showLocationDropdown && locationResults.length > 0" 
+                     @click.away="showLocationDropdown = false"
+                     class="absolute z-10 w-full mt-2 bg-white dark:bg-ig-dark-secondary rounded-lg shadow-lg border border-ig-border dark:border-gray-700 max-h-60 overflow-y-auto">
+                    <template x-for="location in locationResults" :key="location.pk">
+                        <button @click="selectLocation(location)" 
+                                class="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <p class="font-medium" x-text="location.name"></p>
+                            <p class="text-xs text-ig-text-secondary" x-text="location.address"></p>
+                        </button>
+                    </template>
+                </div>
+            </div>
+            
+            <!-- Selected Location -->
+            <div x-show="selectedLocation" class="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-map-marker-alt text-ig-text-secondary"></i>
+                    <span x-text="selectedLocation?.name"></span>
+                </div>
+                <button @click="selectedLocation = null" class="text-ig-error hover:text-red-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advanced Options -->
+    <div class="ig-card mb-6" x-data="{ showAdvanced: false }">
+        <button @click="showAdvanced = !showAdvanced" class="w-full flex items-center justify-between">
+            <h3 class="font-semibold">Gelişmiş Seçenekler</h3>
+            <i class="fas fa-chevron-down transition-transform" :class="showAdvanced ? 'rotate-180' : ''"></i>
+        </button>
+        
+        <div x-show="showAdvanced" x-collapse class="mt-4 space-y-4">
+            <!-- Schedule Upload -->
+            <div>
+                <label class="block text-sm font-medium mb-2">Zamanlanmış Yükleme</label>
+                <input type="datetime-local" 
+                       x-model="scheduledTime"
+                       class="ig-input"
+                       :min="new Date().toISOString().slice(0,16)">
+            </div>
+            
+            <!-- Story Options -->
+            <div x-show="uploadType === 'story'" class="space-y-3">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" x-model="storyOptions.closeFriends" class="mr-3">
+                    <span>Sadece yakın arkadaşlar için</span>
+                </label>
+                
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" x-model="storyOptions.allowReshare" class="mr-3">
+                    <span>Yeniden paylaşıma izin ver</span>
+                </label>
+            </div>
+            
+            <!-- Post Options -->
+            <div x-show="uploadType === 'post'" class="space-y-3">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" x-model="postOptions.disableComments" class="mr-3">
+                    <span>Yorumları kapat</span>
+                </label>
+                
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" x-model="postOptions.hideLikes" class="mr-3">
+                    <span>Beğeni sayısını gizle</span>
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Button -->
+    <div class="flex items-center justify-between">
+        <button @click="window.location.href='/dashboard'" 
+                class="ig-button border border-ig-border hover:bg-gray-50 dark:hover:bg-gray-800">
+            <i class="fas fa-arrow-left mr-2"></i>
+            İptal
+        </button>
+        
+        <button @click="uploadContent" 
+                :disabled="!selectedFile || uploading"
+                class="ig-button ig-gradient text-white disabled:opacity-50 disabled:cursor-not-allowed">
+            <span x-show="!uploading" class="flex items-center">
+                <i class="fas fa-upload mr-2"></i>
+                <span x-text="scheduledTime ? 'Zamanla' : 'Yükle'"></span>
+            </span>
+            <span x-show="uploading" class="flex items-center">
+                <div class="spinner w-5 h-5 mr-2"></div>
+                Yükleniyor...
+            </span>
+        </button>
+    </div>
+</div>
+
+<script>
+function uploadForm() {
+    return {
+        // Form data
+        uploadType: 'story',
+        selectedFile: null,
+        previewUrl: null,
+        fileType: null,
+        fileInfo: null,
+        is4K: false,
+        coverFile: null,
+        coverPreview: null,
+        caption: '',
+        charCount: 0,
+        mentions: [],
+        hashtags: [],
+        selectedLocation: null,
+        scheduledTime: '',
+        
+        // UI state
+        dragover: false,
+        uploading: false,
+        showMentionDropdown: false,
+        showLocationDropdown: false,
+        mentionSearch: '',
+        hashtagInput: '',
+        locationSearch: '',
+        mentionResults: [],
+        locationResults: [],
+        
+        // Options
+        storyOptions: {
+            closeFriends: false,
+            allowReshare: true
+        },
+        postOptions: {
+            disableComments: false,
+            hideLikes: false
+        },
+        
+        init() {
+            // Check URL params for quick upload
+            const urlParams = new URLSearchParams(window.location.search);
+            const type = urlParams.get('type');
+            if (type && ['story', 'reel', 'post'].includes(type)) {
+                this.uploadType = type;
+            }
+        },
+        
+        handleDrop(e) {
+            this.dragover = false;
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                this.processFile(files[0]);
+            }
+        },
+        
+        handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                this.processFile(files[0]);
+            }
+        },
+        
+        async processFile(file) {
+            // Validate file
+            const maxSize = 4 * 1024 * 1024 * 1024; // 4GB
+            if (file.size > maxSize) {
+                Swal.fire('Hata', 'Dosya boyutu 4GB\'dan büyük olamaz', 'error');
+                return;
+            }
+            
+            this.selectedFile = file;
+            this.fileType = file.type.startsWith('image/') ? 'image' : 'video';
+            
+            // Create preview
+            this.previewUrl = URL.createObjectURL(file);
+            
+            // Get file info
+            if (this.fileType === 'video') {
+                await this.getVideoInfo(file);
+            } else {
+                await this.getImageInfo(file);
+            }
+        },
+        
+        async getVideoInfo(file) {
+            const video = document.createElement('video');
+            video.src = this.previewUrl;
+            
+            await new Promise(resolve => {
+                video.onloadedmetadata = () => {
+                    const duration = Math.floor(video.duration);
+                    const resolution = `${video.videoWidth}x${video.videoHeight}`;
+                    this.fileInfo = `${formatDuration(duration)} • ${resolution}`;
+                    
+                    // Check if 4K
+                    this.is4K = video.videoWidth >= 3840 || video.videoHeight >= 2160;
+                    
+                    // Validate duration for upload type
+                    if (this.uploadType === 'story' && duration > 15) {
+                        showToast('Story videosu 15 saniyeden uzun, kesilecek', 'warning');
+                    } else if (this.uploadType === 'reel') {
+                        if (duration < 3) {
+                            Swal.fire('Hata', 'Reels en az 3 saniye olmalı', 'error');
+                            this.removeFile();
+                        } else if (duration > 90) {
+                            showToast('Reels 90 saniyeden uzun, kesilecek', 'warning');
+                        }
+                    }
+                    
+                    resolve();
+                };
+            });
+        },
+        
+        async getImageInfo(file) {
+            const img = new Image();
+            img.src = this.previewUrl;
+            
+            await new Promise(resolve => {
+                img.onload = () => {
+                    this.fileInfo = `${img.width}x${img.height}`;
+                    this.is4K = img.width >= 3840 || img.height >= 2160;
+                    resolve();
+                };
+            });
+        },
+        
+        removeFile() {
+            if (this.previewUrl) {
+                URL.revokeObjectURL(this.previewUrl);
+            }
+            this.selectedFile = null;
+            this.previewUrl = null;
+            this.fileType = null;
+            this.fileInfo = null;
+            this.is4K = false;
+            this.$refs.fileInput.value = '';
+        },
+        
+        handleCoverSelect(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                this.coverFile = file;
+                this.coverPreview = URL.createObjectURL(file);
+            }
+        },
+        
+        removeCover() {
+            if (this.coverPreview) {
+                URL.revokeObjectURL(this.coverPreview);
+            }
+            this.coverFile = null;
+            this.coverPreview = null;
+            this.$refs.coverInput.value = '';
+        },
+        
+        updateCharCount() {
+            this.charCount = this.caption.length;
+        },
+        
+        async searchUsers() {
+            if (this.mentionSearch.length < 2) {
+                this.mentionResults = [];
+                return;
+            }
+            
+            try {
+                // Bu API endpoint'i app.py içinde oluşturulmalıdır.
+                const response = await fetch(`/api/search/user/${encodeURIComponent(this.mentionSearch)}`);
+                const data = await response.json();
+                if (data.success) {
+                    this.mentionResults = data.users;
+                }
+            } catch (error) {
+                console.error('User search error:', error);
+                this.mentionResults = []; // Hata durumunda listeyi temizle
+            }
+        },
+        
+        addMention(user) {
+            if (!this.mentions.find(m => m.username === user.username)) {
+                this.mentions.push({
+                    username: user.username,
+                    x: 0.5,
+                    y: 0.5
+                });
+            }
+            this.mentionSearch = '';
+            this.mentionResults = [];
+            this.showMentionDropdown = false;
+        },
+        
+        removeMention(username) {
+            this.mentions = this.mentions.filter(m => m.username !== username);
+        },
+        
+        addHashtag() {
+            let tag = this.hashtagInput.trim();
+            if (tag && !tag.startsWith('#')) {
+                tag = '#' + tag;
+            }
+            
+            if (tag && !this.hashtags.includes(tag)) {
+                this.hashtags.push(tag);
+                this.hashtagInput = '';
+            }
+        },
+        
+        removeHashtag(tag) {
+            this.hashtags = this.hashtags.filter(t => t !== tag);
+        },
+        
+        async searchLocations() {
+            if (this.locationSearch.length < 2) {
+                this.locationResults = [];
+                return;
+            }
+            
+            try {
+                 // Bu API endpoint'i app.py içinde oluşturulmalıdır.
+                const response = await fetch(`/api/search/location/${encodeURIComponent(this.locationSearch)}`);
+                const data = await response.json();
+                if (data.success) {
+                    this.locationResults = data.locations;
+                }
+            } catch (error) {
+                console.error('Location search error:', error);
+                this.locationResults = []; // Hata durumunda listeyi temizle
+            }
+        },
+        
+        selectLocation(location) {
+            this.selectedLocation = location;
+            this.locationSearch = '';
+            this.locationResults = [];
+            this.showLocationDropdown = false;
+        },
+        
+        async uploadContent() {
+            if (!this.selectedFile || this.uploading) return;
+            
+            this.uploading = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', this.selectedFile);
+                formData.append('type', this.uploadType);
+
+                const fullCaption = [this.caption, ...this.hashtags.join(' ')].join(' ').trim();
+                formData.append('caption', fullCaption);
+                
+                if (this.coverFile) {
+                    formData.append('cover', this.coverFile);
+                }
+                
+                if (this.scheduledTime) {
+                    formData.append('scheduled_time', this.scheduledTime);
+                }
+
+                if (this.mentions.length > 0) {
+                    formData.append('mentions', JSON.stringify(this.mentions));
+                }
+
+                if (this.selectedLocation) {
+                    formData.append('location', JSON.stringify(this.selectedLocation));
+                }
+
+                const extraData = {};
+                if (this.uploadType === 'story') {
+                    if (this.storyOptions.closeFriends) extraData.audience = 'besties';
+                } else if (this.uploadType === 'post' || this.uploadType === 'reel') {
+                    if (this.postOptions.disableComments) extraData.disable_comments = 1;
+                    if (this.postOptions.hideLikes) extraData.like_and_view_counts_disabled = 1;
+                }
+                
+                if (Object.keys(extraData).length > 0) {
+                    formData.append('extra_data', JSON.stringify(extraData));
+                }
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Yükleme Başlatıldı!',
+                        text: result.message || 'Dosyanız işlenmek üzere kuyruğa alındı.',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
+                } else {
+                    throw new Error(result.message || 'Yükleme sırasında bir hata oluştu.');
+                }
+
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata!',
+                    text: error.message,
+                });
+            } finally {
+                this.uploading = false;
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

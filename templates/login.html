@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Giriş Yap - Instalaz{% endblock %}
+
+{% block content %}
+<!-- Compact Login Section -->
+<section class="relative bg-gradient-to-br from-ig-purple via-ig-secondary to-ig-primary min-h-screen">
+    <div class="absolute inset-0 bg-black opacity-10"></div>
+    
+    <div class="relative min-h-screen flex items-center justify-center px-4" x-data="loginForm()">
+        <div class="w-full max-w-sm">
+            <!-- Logo & Title - Compact -->
+            <div class="text-center mb-6">
+                <div class="gradient-instagram w-16 h-16 rounded-xl mx-auto mb-3 flex items-center justify-center shadow-xl">
+                    <i class="fab fa-instagram text-white text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-ig-yellow to-ig-accent">
+                    Instalaz
+                </h1>
+                <p class="text-white mt-1 text-sm">Instagram İçerik Yönetimi</p>
+            </div>
+        
+        <!-- Login Card - Compact -->
+        <div class="bg-white rounded-xl p-6 shadow-xl backdrop-blur-lg border border-white/20">
+            <!-- Login Form -->
+            <form @submit.prevent="handleLogin" x-show="!showTwoFactor">
+                <div class="space-y-4">
+                    <!-- Username -->
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-ig-dark">Kullanıcı Adı</label>
+                        <div class="relative">
+                            <input type="text" 
+                                   x-model="formData.username" 
+                                   class="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ig-primary focus:border-transparent transition-all text-sm"
+                                   placeholder="Instagram kullanıcı adınız"
+                                   required
+                                   :disabled="loading">
+                            <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Password -->
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-ig-dark">Şifre</label>
+                        <div class="relative">
+                            <input :type="showPassword ? 'text' : 'password'" 
+                                   x-model="formData.password" 
+                                   class="w-full px-4 py-2.5 pl-10 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ig-primary focus:border-transparent transition-all text-sm"
+                                   placeholder="••••••••"
+                                   required
+                                   :disabled="loading">
+                            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                            <button type="button" 
+                                    @click="showPassword = !showPassword"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                                <i class="fas text-sm" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Remember Me -->
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" x-model="rememberMe" class="mr-2 rounded border-gray-300 text-ig-primary focus:ring-ig-primary">
+                            <span class="text-sm text-gray-600">Beni hatırla</span>
+                        </label>
+                        <a href="#" class="text-sm text-ig-primary hover:underline">Şifremi unuttum</a>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" 
+                        class="w-full mt-5 bg-gradient-to-r from-ig-purple via-ig-secondary to-ig-primary text-white py-2.5 px-6 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                        :disabled="loading || !formData.username || !formData.password">
+                    <span x-show="!loading" class="flex items-center justify-center">
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        Giriş Yap
+                    </span>
+                    <span x-show="loading" class="flex items-center justify-center">
+                        <div class="spinner w-4 h-4 mr-2"></div>
+                        Giriş yapılıyor...
+                    </span>
+                </button>
+            </form>
+            
+            <!-- 2FA Form - Compact -->
+            <form @submit.prevent="handleTwoFactor" x-show="showTwoFactor" x-cloak>
+                <div class="text-center mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-ig-purple to-ig-primary rounded-full mx-auto mb-2 flex items-center justify-center">
+                        <i class="fas fa-shield-alt text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-ig-dark">İki Faktörlü Doğrulama</h3>
+                    <p class="text-sm text-gray-600 mt-1">Telefonunuza gelen 6 haneli kodu girin</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <div>
+                        <input type="text" 
+                               x-model="formData.verification_code" 
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ig-primary focus:border-transparent text-center text-xl tracking-widest transition-all"
+                               placeholder="000000"
+                               maxlength="6"
+                               pattern="[0-9]{6}"
+                               required
+                               :disabled="loading"
+                               @input="if($event.target.value.length === 6) handleTwoFactor()">
+                    </div>
+                    
+                    <button type="button" 
+                            @click="showTwoFactor = false; formData.verification_code = ''"
+                            class="w-full text-sm text-gray-600 hover:text-gray-800 transition-colors py-1">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Geri dön
+                    </button>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full mt-4 bg-gradient-to-r from-ig-purple via-ig-secondary to-ig-primary text-white py-2.5 px-6 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 text-sm"
+                        :disabled="loading || formData.verification_code.length !== 6">
+                    <span x-show="!loading">Doğrula</span>
+                    <span x-show="loading" class="flex items-center justify-center">
+                        <div class="spinner w-4 h-4 mr-2"></div>
+                        Doğrulanıyor...
+                    </span>
+                </button>
+            </form>
+            
+            <!-- Error Message -->
+            <div x-show="errorMessage" x-cloak
+                 class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm animate-pulse">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span x-text="errorMessage"></span>
+            </div>
+            
+            <!-- Info Message for improved user experience -->
+            <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-xs">
+                <i class="fas fa-info-circle mr-2"></i>
+                <span>Giriş süreleri optimize edildi. Artık çok daha hızlı giriş yapabilirsiniz!</span>
+            </div>
+        </div>
+        
+        <!-- Additional Options - Compact -->
+        <div class="mt-4 text-center space-y-3">
+            <div class="flex items-center">
+                <div class="flex-1 border-t border-white/30"></div>
+                <span class="px-3 text-xs text-white/80 font-medium">VEYA</span>
+                <div class="flex-1 border-t border-white/30"></div>
+            </div>
+            
+            <button class="flex items-center justify-center w-full py-2.5 px-4 bg-white/10 backdrop-blur-sm rounded-lg text-white font-medium hover:bg-white/20 transition-all border border-white/20 text-sm">
+                <i class="fab fa-facebook-square mr-2 text-lg text-blue-400"></i>
+                Facebook ile Giriş Yap
+            </button>
+        </div>
+        
+        <!-- Security Notice - Compact -->
+        <div class="mt-4 p-3 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+            <div class="flex items-start">
+                <i class="fas fa-shield-alt text-ig-yellow mt-0.5 mr-2"></i>
+                <div class="text-xs">
+                    <p class="font-medium text-white">Güvenlik Uyarısı</p>
+                    <p class="text-white/80 mt-1">
+                        Şifrenizi kimseyle paylaşmayın. Instagram çalışanları dahil hiç kimse şifrenizi istemez.
+                    </p>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function loginForm() {
+    return {
+        formData: {
+            username: '',
+            password: '',
+            verification_code: ''
+        },
+        loading: false,
+        showPassword: false,
+        showTwoFactor: false,
+        rememberMe: false,
+        errorMessage: '',
+        
+        async handleLogin() {
+            this.loading = true;
+            this.errorMessage = '';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: this.formData.username,
+                        password: this.formData.password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Save username if remember me is checked
+                    if (this.rememberMe) {
+                        localStorage.setItem('savedUsername', this.formData.username);
+                    }
+                    
+                    showToast('Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    if (data.requires_2fa) {
+                        this.showTwoFactor = true;
+                        showToast('2FA kodu gerekli', 'info');
+                    } else if (data.requires_challenge) {
+                        this.errorMessage = 'Instagram güvenlik kontrolü gerekli. Lütfen Instagram uygulamasından giriş yapıp tekrar deneyin.';
+                    } else {
+                        this.errorMessage = data.message;
+                        // Scroll error message into view
+                        setTimeout(() => {
+                            document.querySelector('[x-show="errorMessage"]')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                    }
+                }
+            } catch (error) {
+                this.errorMessage = 'Bağlantı hatası. Lütfen tekrar deneyin.';
+                showToast('Bağlantı hatası. Lütfen tekrar deneyin.', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async handleTwoFactor() {
+            if (this.formData.verification_code.length !== 6) return;
+            
+            this.loading = true;
+            this.errorMessage = '';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: this.formData.username,
+                        password: this.formData.password,
+                        verification_code: this.formData.verification_code
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Doğrulama başarılı! Yönlendiriliyorsunuz...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    this.errorMessage = data.message;
+                    this.formData.verification_code = '';
+                    // Scroll error message into view and show toast
+                    showToast(data.message, 'error');
+                    setTimeout(() => {
+                        document.querySelector('[x-show="errorMessage"]')?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                }
+            } catch (error) {
+                this.errorMessage = 'Bağlantı hatası. Lütfen tekrar deneyin.';
+                showToast('Bağlantı hatası. Lütfen tekrar deneyin.', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        init() {
+            // Load saved username if exists
+            const savedUsername = localStorage.getItem('savedUsername');
+            if (savedUsername) {
+                this.formData.username = savedUsername;
+                this.rememberMe = true;
+            }
+            
+            // Auto-focus
+            setTimeout(() => {
+                if (!this.formData.username) {
+                    document.querySelector('input[type="text"]').focus();
+                } else {
+                    document.querySelector('input[type="password"]').focus();
+                }
+            }, 100);
+        }
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Parallax effect for decorative elements
+    window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const loginSection = document.querySelector('section:first-child');
+        if (loginSection && scrolled < window.innerHeight) {
+            const parallaxElements = loginSection.querySelectorAll('.absolute');
+            parallaxElements.forEach(element => {
+                if (element.classList.contains('blur-xl')) {
+                    element.style.transform = `translateY(${scrolled * 0.3}px)`;
+                }
+            });
+        }
+    });
+    
+    // Add subtle floating animation to login card
+    const loginCard = document.querySelector('.bg-white.rounded-2xl');
+    if (loginCard) {
+        let floatDirection = 1;
+        setInterval(() => {
+            loginCard.style.transform += ` translateY(${floatDirection * 1}px)`;
+            floatDirection *= -1;
+        }, 3000);
+    }
+</script>
+{% endblock %}

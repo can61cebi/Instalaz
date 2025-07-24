@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Sunucu Hatası{% endblock %}
+
+{% block content %}
+<div class="text-center py-20">
+    <h1 class="text-6xl font-bold text-ig-error">500</h1>
+    <h2 class="text-2xl font-semibold mt-4 mb-2">İç Sunucu Hatası</h2>
+    <p class="text-ig-text-secondary mb-8">Bir şeyler ters gitti. Teknik ekibimiz bilgilendirildi.</p>
+    <a href="{{ url_for('index') }}" class="ig-button bg-ig-error text-white">
+        Ana Sayfaya Dön
+    </a>
+</div>
+{% endblock %}
