@@ -31,17 +31,17 @@
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="https://github.com/can61cebi/Instalaz/blob/master/images/image1.png" alt="Main Dashboard Interface" width="500">
+  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image2.png" alt="Main Dashboard Interface" width="500">
 </p>
 <p align="center"><em>Figure 1. Main Dashboard - Content Overview & Management</em></p>
 
 <p align="center">
-  <img src="https://github.com/can61cebi/Instalaz/blob/master/images/image2.png" alt="Upload Interface" width="500">
+  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image3.png" alt="Upload Interface" width="500">
 </p>
 <p align="center"><em>Figure 2. Upload Interface - Drag & Drop 4K Media Processing</em></p>
 
 <p align="center">
-  <img src="https://github.com/can61cebi/Instalaz/blob/master/images/image3.png" alt="Queue Management" width="500">
+  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image4.png" alt="Queue Management" width="500">
 </p>
 <p align="center"><em>Figure 3. Queue Management - Real-time Processing Status</em></p>
 
