@@ -266,18 +266,25 @@ class InstagramManager:
                     # Remove expired session
                     del self.clients[username]
             
-            # 2FA kodu varsa
-            if verification_code:
-                cl = self.clients.get(username, cl)
-                cl.two_factor_login(username, password, verification_code)
-            else:
-                # Yeni giriş yap
-                try:
+            # Yeni giriş yap
+            try:
+                if verification_code:
+                    # 2FA ile giriş
+                    cl.login(username, password, verification_code=verification_code)
+                else:
+                    # Normal giriş
                     cl.login(username, password)
-                except ChallengeRequired as e:
+            except ChallengeRequired as e:
+                # 2FA gerekli
+                self.clients[username] = cl
+                return False, "2FA doğrulaması gerekli", {"requires_2fa": True}
+            except Exception as e:
+                if "Two-factor authentication required" in str(e):
                     # 2FA gerekli
                     self.clients[username] = cl
                     return False, "2FA doğrulaması gerekli", {"requires_2fa": True}
+                else:
+                    raise e
             
             # Başarılı giriş
             self.clients[username] = cl
