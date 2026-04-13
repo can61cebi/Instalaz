@@ -29,7 +29,7 @@ import cv2
 
 from instagrapi import Client
 from instagrapi.types import (
-    StoryMention, StoryLocation, StoryLink, StoryHashtag, 
+    StoryMention, StoryLocation, StoryLink, StoryHashtag,
     Usertag, Location, StoryPoll, StorySticker
 )
 from instagrapi.exceptions import (
@@ -37,6 +37,24 @@ from instagrapi.exceptions import (
     DirectThreadNotFound, DirectMessageNotFound, UserNotFound,
     FeedbackRequired, PleaseWaitFewMinutes, RateLimitError,
 )
+
+# --- instagrapi uyumluluk yamaları ---------------------------------------
+# Instagram zaman zaman DM inbox cevabında "xma_share" alanını target_url'siz
+# döndürüyor. instagrapi bu durumda MediaXma.video_url (zorunlu HttpUrl)
+# yüzünden ValidationError atıp tüm direct_threads çağrısını düşürüyor.
+# video_url'u Optional'a çekerek çökmeyi engelliyoruz.
+try:
+    from instagrapi import types as _ig_types
+    from typing import Optional as _Optional
+    from pydantic import HttpUrl as _HttpUrl
+    if _ig_types.MediaXma.model_fields["video_url"].is_required():
+        _ig_types.MediaXma.model_fields["video_url"].annotation = _Optional[_HttpUrl]
+        _ig_types.MediaXma.model_fields["video_url"].default = None
+        _ig_types.MediaXma.model_rebuild(force=True)
+except Exception as _patch_exc:  # pragma: no cover - yalnızca loglayıp geç
+    logging.getLogger(__name__).warning(
+        f"MediaXma patch failed (continuing): {_patch_exc}"
+    )
 import requests as _http_requests
 from urllib.parse import urlparse
 
@@ -150,13 +168,19 @@ class InstagramManager:
         self.load_sessions()
         
     def get_random_user_agent(self):
-        """Rastgele user agent döndür"""
+        """Rastgele user agent döndür.
+
+        Instagram, eski sürümlü uygulamalardan gelen /direct_v2/inbox gibi
+        uç noktaları HTTP 467 "Unsupported" cevabıyla reddediyor. Bu yüzden
+        UA havuzunu güncel uygulama sürümleriyle (396-400 bloğu, bloks
+        destekli) tutuyoruz.
+        """
         user_agents = [
-            "Instagram 269.0.0.18.75 Android (30/11; 450dpi; 1080x2137; samsung; SM-G973F; beyond1; exynos9820; en_US; 436384443)",
-            "Instagram 271.0.0.18.86 Android (29/10; 420dpi; 1080x2280; OnePlus; GM1913; OnePlus7Pro; qcom; en_US; 439308937)",
-            "Instagram 273.0.0.18.95 Android (31/12; 440dpi; 1080x2400; Google; Pixel 5; redfin; redfin; en_US; 441258931)",
-            "Instagram 275.0.0.18.104 Android (28/9; 480dpi; 1440x2960; samsung; SM-G965F; star2qltexm; samsungexynos9810; en_US; 443198937)",
-            "Instagram 277.0.0.18.116 Android (32/13; 560dpi; 1440x3200; samsung; SM-G998B; o1s; exynos2100; en_US; 445123456)"
+            "Instagram 398.0.0.46.71 Android (33/13; 420dpi; 1080x2340; samsung; SM-S918B; dm3q; qcom; en_US; 457812399)",
+            "Instagram 399.0.0.53.76 Android (34/14; 480dpi; 1080x2400; Google; Pixel 7; panther; google; en_US; 458901234)",
+            "Instagram 400.0.0.37.83 Android (31/12; 450dpi; 1080x2400; OnePlus; CPH2449; OP5A7BL1; qcom; en_US; 459112345)",
+            "Instagram 397.0.0.44.78 Android (34/14; 560dpi; 1440x3088; samsung; SM-S928B; e3q; qcom; en_US; 456778899)",
+            "Instagram 396.0.0.46.67 Android (33/13; 420dpi; 1080x2400; Xiaomi; 23049PCD8G; fire; mediatek; en_US; 455667788)",
         ]
         return random.choice(user_agents)
         
@@ -225,6 +249,11 @@ class InstagramManager:
                         try:
                             cl = Client()
                             cl.set_settings(settings)
+                            # Kaydedilmiş UA eski bir Instagram sürümü olabilir;
+                            # IG bu yüzden direct_v2/inbox gibi uçlarda 467
+                            # Unsupported dönüyor. Her oturum yüklemesinde
+                            # güncel bir UA ile değiştiriyoruz.
+                            cl.set_user_agent(self.get_random_user_agent())
                             # Proxy ayarları (opsiyonel)
                             if os.environ.get('PROXY_URL'):
                                 cl.set_proxy(os.environ.get('PROXY_URL'))
@@ -1168,7 +1197,6 @@ def api_user_stats():
             'posts': stats.get('posts', 0),
             'todayUploads': today_count,
             'weeklyUploads': weekly_count,
-            'storageUsed': '2.4 GB'
         }
     })
 
@@ -1589,11 +1617,52 @@ def _dm_handle_ig_exception(exc: Exception):
     if isinstance(exc, LoginRequired):
         return jsonify({'success': False, 'message': 'Oturum süresi doldu, tekrar giriş yapın', 'code': 'login_required'}), 401
     if isinstance(exc, ChallengeRequired):
-        return jsonify({'success': False, 'message': 'Instagram doğrulama istiyor', 'code': 'challenge'}), 403
+        return jsonify({
+            'success': False,
+            'code': 'challenge',
+            'message': 'Instagram bu hesap için güvenlik doğrulaması istiyor. '
+                       'Telefondaki Instagram uygulamasından doğrulamayı tamamlayıp tekrar giriş yapın.',
+        }), 403
     if isinstance(exc, FeedbackRequired):
         return jsonify({'success': False, 'message': 'Instagram işlemi engelledi (feedback_required). Lütfen biraz bekleyin.', 'code': 'feedback'}), 429
     if isinstance(exc, (PleaseWaitFewMinutes, RateLimitError)):
         return jsonify({'success': False, 'message': 'Hız limiti — birkaç dakika bekleyin.', 'code': 'rate_limit'}), 429
+
+    if isinstance(exc, ClientError):
+        # ClientError genellikle Instagram'dan beklenmeyen HTTP kodu (örn. 467, 400)
+        # döndüğünde fırlatılır. HTTP kodunu ve gövdeyi sezgisel olarak çıkar.
+        upstream_status = None
+        try:
+            resp = getattr(exc, 'response', None)
+            if resp is not None:
+                upstream_status = resp.status_code
+        except Exception:
+            pass
+
+        msg = str(exc) or 'Instagram cevabı işlenemedi.'
+        # 467: Instagram'ın "müşteri eski / oturum yenilenmeli" sinyali olarak
+        # gözlemlediğimiz özel kod. Kullanıcıya net bir öneri sunalım.
+        if upstream_status == 467:
+            return jsonify({
+                'success': False,
+                'code': 'client_stale',
+                'http_status': 467,
+                'message': 'Instagram bu oturumun mesaj kutusuna erişimini reddetti (HTTP 467). '
+                           'Çoğunlukla hesap doğrulama bekliyor veya oturum eskimiş — '
+                           'çıkış yapıp yeniden giriş deneyin; sorun sürerse Instagram '
+                           'uygulamasından hesabınızı kontrol edin.',
+            }), 502
+
+        logger.error(f"DM ClientError ({upstream_status}): {exc}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'code': 'upstream_error',
+            'http_status': upstream_status,
+            'message': f'Instagram isteği reddetti'
+                       + (f' (HTTP {upstream_status})' if upstream_status else '')
+                       + f': {msg[:200]}',
+        }), 502
+
     logger.error(f"DM error: {exc}", exc_info=True)
     return jsonify({'success': False, 'message': f'İşlem başarısız: {exc}'}), 500
 
