@@ -1,0 +1,649 @@
+{% extends "base.html" %}
+
+{% block title %}Mesajlar - Instalaz{% endblock %}
+
+{% block extra_head %}
+<style>
+    .dm-shell { height: calc(100vh - 4rem); }
+    .dm-pane { height: 100%; }
+    .dm-scroll::-webkit-scrollbar { width: 6px; }
+    .dm-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .dark .dm-scroll::-webkit-scrollbar-thumb { background: #374151; }
+    .dm-bubble { word-wrap: break-word; word-break: break-word; }
+    .dm-bubble-mine { background: #0095F6; color: #fff; }
+    .dm-bubble-theirs { background: #efefef; color: #262626; }
+    .dark .dm-bubble-theirs { background: #262626; color: #fafafa; }
+    .dm-thread-item:hover { background: rgba(0,0,0,0.04); }
+    .dark .dm-thread-item:hover { background: rgba(255,255,255,0.05); }
+    .dm-thread-active { background: rgba(0,149,246,0.10) !important; }
+    .dm-typing-dot { animation: dmDot 1.4s infinite ease-in-out; }
+    .dm-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .dm-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dmDot { 0%,80%,100% { opacity: 0.3 } 40% { opacity: 1 } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dm-shell max-w-7xl mx-auto px-0 sm:px-4" x-data="messagesApp()" x-init="init()">
+    <div class="dm-pane bg-white dark:bg-ig-dark-secondary rounded-none sm:rounded-2xl shadow-sm border border-ig-border dark:border-gray-800 overflow-hidden flex">
+
+        <!-- Sol panel: Thread listesi -->
+        <aside class="w-full sm:w-80 md:w-96 border-r border-ig-border dark:border-gray-800 flex flex-col"
+               :class="{ 'hidden sm:flex': activeThreadId }">
+            <header class="p-4 border-b border-ig-border dark:border-gray-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <h2 class="text-lg font-bold">{{ session.username }}</h2>
+                    <span class="text-ig-text-secondary text-xs"
+                          x-text="threads.length + ' sohbet'"></span>
+                </div>
+                <button @click="openNewChat()"
+                        class="ig-button bg-ig-link text-white hover:bg-blue-600"
+                        title="Yeni Mesaj">
+                    <i class="fas fa-pen-to-square"></i>
+                </button>
+            </header>
+
+            <!-- Filtreler -->
+            <div class="flex border-b border-ig-border dark:border-gray-800 text-sm">
+                <button @click="tab = 'inbox'"
+                        :class="tab === 'inbox' ? 'border-b-2 border-ig-link text-ig-link font-semibold' : 'text-ig-text-secondary'"
+                        class="flex-1 py-2 hover:text-ig-link">
+                    Birincil
+                </button>
+                <button @click="tab = 'pending'"
+                        :class="tab === 'pending' ? 'border-b-2 border-ig-link text-ig-link font-semibold' : 'text-ig-text-secondary'"
+                        class="flex-1 py-2 hover:text-ig-link relative">
+                    İstekler
+                    <span x-show="pending.length > 0"
+                          class="ml-1 text-xs bg-ig-error text-white rounded-full px-1.5"
+                          x-text="pending.length"></span>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto dm-scroll">
+                <template x-if="loadingThreads && threads.length === 0">
+                    <div class="p-6 text-center text-ig-text-secondary">
+                        <div class="spinner mx-auto mb-3"></div>
+                        Sohbetler yükleniyor...
+                    </div>
+                </template>
+
+                <template x-if="!loadingThreads && currentList().length === 0">
+                    <div class="p-8 text-center text-ig-text-secondary">
+                        <i class="fas fa-paper-plane text-3xl mb-3 opacity-50"></i>
+                        <p x-text="tab === 'pending' ? 'Bekleyen istek yok.' : 'Henüz bir sohbetin yok.'"></p>
+                    </div>
+                </template>
+
+                <template x-for="t in currentList()" :key="t.id">
+                    <button @click="openThread(t.id)"
+                            class="dm-thread-item w-full text-left flex items-center space-x-3 px-4 py-3 border-b border-ig-border dark:border-gray-800"
+                            :class="{ 'dm-thread-active': activeThreadId === t.id }">
+                        <div class="relative shrink-0">
+                            <img :src="proxyUrl(t.avatar) || '/static/default-avatar.png'"
+                                 alt="" class="w-12 h-12 rounded-full object-cover bg-gray-200"
+                                 onerror="this.src='/static/default-avatar.png'">
+                            <span x-show="t.unread"
+                                  class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-ig-link rounded-full ring-2 ring-white dark:ring-ig-dark-secondary"></span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold truncate" x-text="t.title"></span>
+                                <span class="text-xs text-ig-text-secondary ml-2 shrink-0"
+                                      x-text="formatRelativeTime(t.last_activity_at)"></span>
+                            </div>
+                            <div class="text-sm text-ig-text-secondary truncate"
+                                 :class="{ 'font-semibold text-ig-text dark:text-ig-light': t.unread }">
+                                <span x-show="t.last_message && t.last_message.is_sent_by_viewer"
+                                      class="text-ig-text-secondary">Sen: </span>
+                                <span x-text="t.last_message ? t.last_message.preview : 'Henüz mesaj yok'"></span>
+                            </div>
+                        </div>
+                    </button>
+                </template>
+            </div>
+        </aside>
+
+        <!-- Sağ panel: Konuşma -->
+        <section class="flex-1 flex flex-col" :class="{ 'hidden sm:flex': !activeThreadId }">
+            <template x-if="!activeThreadId">
+                <div class="flex-1 flex flex-col items-center justify-center text-center p-8">
+                    <div class="w-24 h-24 rounded-full border-2 border-ig-text dark:border-white flex items-center justify-center mb-4">
+                        <i class="fas fa-paper-plane text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-light mb-1">Mesajların</h3>
+                    <p class="text-ig-text-secondary mb-4">Bir arkadaşına özel mesaj gönder.</p>
+                    <button @click="openNewChat()"
+                            class="ig-button bg-ig-link text-white hover:bg-blue-600">
+                        Mesaj Gönder
+                    </button>
+                </div>
+            </template>
+
+            <template x-if="activeThreadId">
+                <div class="flex-1 flex flex-col min-h-0">
+                    <!-- Konuşma başlığı -->
+                    <header class="p-3 border-b border-ig-border dark:border-gray-800 flex items-center space-x-3">
+                        <button @click="closeThread()" class="sm:hidden p-2 hover:text-ig-link">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <img :src="proxyUrl(activeThread()?.avatar) || '/static/default-avatar.png'"
+                             alt="" class="w-10 h-10 rounded-full object-cover bg-gray-200"
+                             onerror="this.src='/static/default-avatar.png'">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold truncate" x-text="activeThread()?.title || 'Sohbet'"></div>
+                            <div class="text-xs text-ig-text-secondary truncate"
+                                 x-text="(activeThread()?.users || []).map(u => '@' + u.username).join(', ')"></div>
+                        </div>
+                        <button @click="loadActiveThread(true)" class="p-2 hover:text-ig-link" title="Yenile">
+                            <i class="fas fa-sync-alt" :class="{ 'animate-spin': loadingMessages }"></i>
+                        </button>
+                    </header>
+
+                    <!-- Mesajlar -->
+                    <div class="flex-1 overflow-y-auto dm-scroll p-4 space-y-2"
+                         x-ref="messagesContainer">
+                        <template x-if="loadingMessages && messages.length === 0">
+                            <div class="text-center py-8">
+                                <div class="spinner mx-auto"></div>
+                            </div>
+                        </template>
+
+                        <template x-for="(m, idx) in messages" :key="m.id || idx">
+                            <div class="flex" :class="m.is_sent_by_viewer ? 'justify-end' : 'justify-start'">
+                                <div class="max-w-xs md:max-w-md">
+                                    <!-- Text -->
+                                    <template x-if="m.item_type === 'text' || (m.item_type === 'link' && m.text)">
+                                        <div class="dm-bubble px-4 py-2 rounded-2xl"
+                                             :class="m.is_sent_by_viewer ? 'dm-bubble-mine' : 'dm-bubble-theirs'">
+                                            <p class="whitespace-pre-wrap" x-text="m.text"></p>
+                                        </div>
+                                    </template>
+
+                                    <!-- Görsel -->
+                                    <template x-if="m.media && m.media.kind === 'image'">
+                                        <div class="rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+                                            <img :src="proxyUrl(m.media.thumbnail_url)"
+                                                 class="max-w-full max-h-96 object-cover cursor-pointer"
+                                                 @click="openLightbox(proxyUrl(m.media.thumbnail_url))">
+                                        </div>
+                                    </template>
+
+                                    <!-- Video -->
+                                    <template x-if="m.media && m.media.kind === 'video'">
+                                        <div class="rounded-2xl overflow-hidden bg-black">
+                                            <video :src="proxyUrl(m.media.video_url)"
+                                                   :poster="proxyUrl(m.media.thumbnail_url)"
+                                                   controls preload="metadata"
+                                                   class="max-w-full max-h-96"></video>
+                                        </div>
+                                    </template>
+
+                                    <!-- Sesli mesaj -->
+                                    <template x-if="m.media && m.media.kind === 'audio'">
+                                        <div class="rounded-2xl bg-gray-100 dark:bg-gray-800 px-3 py-2 flex items-center space-x-2">
+                                            <i class="fas fa-microphone text-ig-link"></i>
+                                            <audio :src="proxyUrl(m.media.audio_url)" controls preload="metadata"></audio>
+                                        </div>
+                                    </template>
+
+                                    <!-- Post / Reel paylaşımı -->
+                                    <template x-if="m.media && (m.media.kind === 'media_share' || m.media.kind === 'xma_share')">
+                                        <a :href="m.media.target_url || '#'" target="_blank" rel="noopener"
+                                           class="block rounded-2xl overflow-hidden border border-ig-border dark:border-gray-700 bg-white dark:bg-ig-dark">
+                                            <template x-if="m.media.thumbnail_url || m.media.video_url">
+                                                <img :src="proxyUrl(m.media.thumbnail_url || m.media.video_url)"
+                                                     class="w-64 h-64 object-cover">
+                                            </template>
+                                            <div class="p-2 text-xs">
+                                                <div class="font-semibold truncate"
+                                                     x-text="m.media.title || (m.media.owner_username ? '@' + m.media.owner_username : 'Paylaşılan içerik')"></div>
+                                                <div class="text-ig-text-secondary">Instagram'da görüntüle</div>
+                                            </div>
+                                        </a>
+                                    </template>
+
+                                    <!-- Link önizlemesi -->
+                                    <template x-if="m.media && m.media.kind === 'link'">
+                                        <a :href="m.media.link_url" target="_blank" rel="noopener"
+                                           class="block rounded-2xl overflow-hidden border border-ig-border dark:border-gray-700 bg-white dark:bg-ig-dark p-3">
+                                            <div class="text-sm font-semibold truncate" x-text="m.media.link_title || m.media.link_url"></div>
+                                            <div class="text-xs text-ig-text-secondary truncate" x-text="m.media.link_summary || m.media.link_url"></div>
+                                        </a>
+                                    </template>
+
+                                    <!-- Bilinmeyen tip -->
+                                    <template x-if="!m.media && m.item_type !== 'text' && m.item_type !== 'link'">
+                                        <div class="dm-bubble px-4 py-2 rounded-2xl italic text-sm dm-bubble-theirs">
+                                            [<span x-text="m.item_type || 'desteklenmeyen mesaj'"></span>]
+                                        </div>
+                                    </template>
+
+                                    <div class="text-[10px] text-ig-text-secondary mt-1"
+                                         :class="m.is_sent_by_viewer ? 'text-right' : 'text-left'"
+                                         x-text="formatRelativeTime(m.timestamp)"></div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div x-show="messages.length === 0 && !loadingMessages"
+                             class="text-center text-ig-text-secondary py-12">
+                            Bu sohbette henüz mesaj yok. İlk mesajı sen gönder!
+                        </div>
+                    </div>
+
+                    <!-- Composer -->
+                    <footer class="border-t border-ig-border dark:border-gray-800 p-3">
+                        <template x-if="pendingMedia">
+                            <div class="mb-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 text-sm">
+                                <div class="flex items-center space-x-2 min-w-0">
+                                    <i class="fas"
+                                       :class="pendingMedia.kind === 'video' ? 'fa-film' : 'fa-image'"></i>
+                                    <span class="truncate" x-text="pendingMedia.name"></span>
+                                    <span class="text-xs text-ig-text-secondary"
+                                          x-text="formatFileSize(pendingMedia.size)"></span>
+                                </div>
+                                <button @click="clearPendingMedia()" class="text-ig-error hover:scale-110">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </template>
+
+                        <form @submit.prevent="sendMessage()"
+                              class="flex items-end space-x-2">
+                            <label class="cursor-pointer p-2 text-ig-text-secondary hover:text-ig-link"
+                                   title="Fotoğraf/Video">
+                                <i class="fas fa-image text-xl"></i>
+                                <input type="file" class="hidden"
+                                       accept="image/*,video/*"
+                                       @change="onPickMedia($event)">
+                            </label>
+
+                            <textarea x-model="composer" rows="1"
+                                      @keydown.enter.prevent="if(!$event.shiftKey){ sendMessage() } else { composer += '\n' }"
+                                      placeholder="Mesaj yaz..."
+                                      class="ig-input flex-1 resize-none"
+                                      style="min-height: 44px; max-height: 140px;"></textarea>
+
+                            <button type="submit" :disabled="sending || (!composer.trim() && !pendingMedia)"
+                                    class="ig-button bg-ig-link text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                                <i class="fas" :class="sending ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
+                            </button>
+                        </form>
+                    </footer>
+                </div>
+            </template>
+        </section>
+    </div>
+
+    <!-- Yeni Sohbet Modal -->
+    <div x-show="newChatOpen" x-cloak
+         class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+         @click.self="closeNewChat()">
+        <div class="bg-white dark:bg-ig-dark-secondary rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <header class="flex items-center justify-between p-4 border-b border-ig-border dark:border-gray-800">
+                <h3 class="font-bold">Yeni Mesaj</h3>
+                <button @click="closeNewChat()" class="text-ig-text-secondary hover:text-ig-error">
+                    <i class="fas fa-times"></i>
+                </button>
+            </header>
+
+            <div class="p-4 space-y-3">
+                <div>
+                    <label class="text-sm font-medium text-ig-text-secondary">Kime:</label>
+                    <div class="flex flex-wrap gap-2 mt-1 mb-2">
+                        <template x-for="u in newChatRecipients" :key="u.pk">
+                            <span class="bg-ig-link/10 text-ig-link rounded-full px-3 py-1 text-sm flex items-center space-x-1">
+                                <span x-text="'@' + u.username"></span>
+                                <button @click="removeRecipient(u)" class="hover:scale-110">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                            </span>
+                        </template>
+                    </div>
+                    <input type="text" class="ig-input"
+                           x-model="newChatQuery"
+                           @input.debounce.300ms="searchUsers()"
+                           placeholder="Kullanıcı adı ile ara...">
+                </div>
+
+                <div class="max-h-56 overflow-y-auto dm-scroll border border-ig-border dark:border-gray-700 rounded-lg"
+                     x-show="newChatResults.length > 0 || searchingUsers">
+                    <template x-if="searchingUsers">
+                        <div class="text-center text-ig-text-secondary py-4 text-sm">Aranıyor...</div>
+                    </template>
+                    <template x-for="u in newChatResults" :key="u.pk">
+                        <button @click="addRecipient(u)"
+                                class="w-full text-left flex items-center space-x-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <img :src="proxyUrl(u.profile_pic_url) || '/static/default-avatar.png'"
+                                 class="w-10 h-10 rounded-full object-cover bg-gray-200"
+                                 onerror="this.src='/static/default-avatar.png'">
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold truncate"
+                                     x-text="'@' + u.username + (u.is_verified ? ' ✓' : '')"></div>
+                                <div class="text-xs text-ig-text-secondary truncate" x-text="u.full_name"></div>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+
+                <textarea x-model="newChatText" rows="3"
+                          placeholder="Mesajını yaz..."
+                          class="ig-input resize-none"></textarea>
+
+                <div class="flex items-center justify-between">
+                    <label class="cursor-pointer text-sm text-ig-text-secondary hover:text-ig-link flex items-center space-x-1">
+                        <i class="fas fa-paperclip"></i>
+                        <span x-text="newChatMedia ? newChatMedia.name : 'Medya ekle (ops.)'"></span>
+                        <input type="file" class="hidden"
+                               accept="image/*,video/*"
+                               @change="onPickNewChatMedia($event)">
+                    </label>
+                    <button @click="startNewChat()"
+                            :disabled="startingChat || newChatRecipients.length === 0 || (!newChatText.trim() && !newChatMedia)"
+                            class="ig-button bg-ig-link text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fas" :class="startingChat ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
+                        Gönder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div x-show="lightboxUrl" x-cloak
+         class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+         @click="lightboxUrl = null">
+        <img :src="lightboxUrl" class="max-w-full max-h-full object-contain">
+    </div>
+</div>
+
+<script>
+function messagesApp() {
+    return {
+        // State
+        threads: [],
+        pending: [],
+        tab: 'inbox',
+        loadingThreads: false,
+        activeThreadId: null,
+        messages: [],
+        loadingMessages: false,
+        composer: '',
+        sending: false,
+        pendingMedia: null,
+        threadPollTimer: null,
+        messagePollTimer: null,
+
+        // Yeni sohbet
+        newChatOpen: false,
+        newChatQuery: '',
+        newChatResults: [],
+        newChatRecipients: [],
+        newChatText: '',
+        newChatMedia: null,
+        searchingUsers: false,
+        startingChat: false,
+
+        lightboxUrl: null,
+
+        init() {
+            this.loadThreads();
+            this.threadPollTimer = setInterval(() => this.loadThreads(true), 15000);
+            window.addEventListener('beforeunload', () => this.cleanup());
+        },
+
+        cleanup() {
+            if (this.threadPollTimer) clearInterval(this.threadPollTimer);
+            if (this.messagePollTimer) clearInterval(this.messagePollTimer);
+        },
+
+        currentList() {
+            return this.tab === 'pending' ? this.pending : this.threads;
+        },
+
+        proxyUrl(url) {
+            if (!url) return '';
+            if (url.startsWith('/')) return url;
+            return '/api/dm/media-proxy?url=' + encodeURIComponent(url);
+        },
+
+        formatRelativeTime(iso) {
+            if (!iso) return '';
+            const t = new Date(iso);
+            const diff = (Date.now() - t.getTime()) / 1000;
+            if (diff < 60) return 'şimdi';
+            if (diff < 3600) return Math.floor(diff/60) + 'd';
+            if (diff < 86400) return Math.floor(diff/3600) + 's';
+            if (diff < 7*86400) return Math.floor(diff/86400) + 'g';
+            return t.toLocaleDateString('tr-TR');
+        },
+
+        async loadThreads(silent = false) {
+            if (!silent) this.loadingThreads = true;
+            try {
+                const r = await fetch('/api/dm/threads');
+                if (r.status === 401) { window.location.href = '/login'; return; }
+                const data = await r.json();
+                if (data.success) {
+                    this.threads = data.threads || [];
+                    this.pending = data.pending || [];
+                } else if (!silent) {
+                    showToast(data.message || 'Sohbetler alınamadı', 'error');
+                }
+            } catch (e) {
+                if (!silent) showToast('Bağlantı hatası', 'error');
+            } finally {
+                this.loadingThreads = false;
+            }
+        },
+
+        activeThread() {
+            return this.threads.find(t => t.id === this.activeThreadId)
+                || this.pending.find(t => t.id === this.activeThreadId);
+        },
+
+        async openThread(id) {
+            this.activeThreadId = id;
+            this.messages = [];
+            await this.loadActiveThread();
+            // Okundu olarak işaretle
+            fetch(`/api/dm/threads/${id}/seen`, { method: 'POST' }).catch(() => {});
+            // UI'da unread'i sıfırla
+            const t = this.activeThread();
+            if (t) t.unread = false;
+
+            if (this.messagePollTimer) clearInterval(this.messagePollTimer);
+            this.messagePollTimer = setInterval(() => this.pollMessages(), 5000);
+        },
+
+        closeThread() {
+            this.activeThreadId = null;
+            this.messages = [];
+            if (this.messagePollTimer) clearInterval(this.messagePollTimer);
+        },
+
+        async loadActiveThread(force = false) {
+            if (!this.activeThreadId) return;
+            this.loadingMessages = true;
+            try {
+                const r = await fetch(`/api/dm/threads/${this.activeThreadId}`);
+                const data = await r.json();
+                if (data.success) {
+                    // Mesajlar API'den en yeni → en eski sırada gelir; UI için ters çevir.
+                    this.messages = (data.thread.messages || []).slice().reverse();
+                    this.$nextTick(() => this.scrollToBottom());
+                } else {
+                    showToast(data.message || 'Sohbet yüklenemedi', 'error');
+                }
+            } catch (e) {
+                showToast('Bağlantı hatası', 'error');
+            } finally {
+                this.loadingMessages = false;
+            }
+        },
+
+        async pollMessages() {
+            if (!this.activeThreadId) return;
+            const lastId = this.messages.length ? this.messages[this.messages.length - 1].id : null;
+            try {
+                const url = `/api/dm/threads/${this.activeThreadId}/messages` +
+                            (lastId ? `?after_id=${encodeURIComponent(lastId)}` : '');
+                const r = await fetch(url);
+                if (!r.ok) return;
+                const data = await r.json();
+                if (data.success && data.messages && data.messages.length) {
+                    // after_id mantığı: daha yeni mesajlar (yeni → eski sırada). UI sırasına çevir.
+                    const newOnes = data.messages.slice().reverse();
+                    this.messages.push(...newOnes);
+                    this.$nextTick(() => this.scrollToBottom());
+                }
+            } catch (e) { /* sessiz */ }
+        },
+
+        scrollToBottom() {
+            const el = this.$refs.messagesContainer;
+            if (el) el.scrollTop = el.scrollHeight;
+        },
+
+        onPickMedia(e) {
+            const f = e.target.files[0];
+            if (!f) return;
+            this.pendingMedia = {
+                file: f,
+                name: f.name,
+                size: f.size,
+                kind: f.type.startsWith('video/') ? 'video' : 'image',
+            };
+            e.target.value = '';
+        },
+
+        clearPendingMedia() { this.pendingMedia = null; },
+
+        async sendMessage() {
+            if (this.sending) return;
+            const text = this.composer.trim();
+            if (!text && !this.pendingMedia) return;
+            this.sending = true;
+
+            try {
+                let r;
+                if (this.pendingMedia) {
+                    const fd = new FormData();
+                    fd.append('file', this.pendingMedia.file);
+                    if (text) fd.append('text', text);
+                    r = await fetch(`/api/dm/threads/${this.activeThreadId}/upload`, {
+                        method: 'POST', body: fd
+                    });
+                } else {
+                    r = await fetch(`/api/dm/threads/${this.activeThreadId}/send`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text }),
+                    });
+                }
+                const data = await r.json();
+                if (data.success) {
+                    this.composer = '';
+                    this.pendingMedia = null;
+                    if (data.message) this.messages.push(data.message);
+                    this.$nextTick(() => this.scrollToBottom());
+                    // Thread listesini fısıltıyla yenile
+                    this.loadThreads(true);
+                } else {
+                    showToast(data.message || 'Gönderilemedi', 'error');
+                }
+            } catch (e) {
+                showToast('Mesaj gönderilemedi', 'error');
+            } finally {
+                this.sending = false;
+            }
+        },
+
+        // ---- Yeni sohbet akışı ----
+        openNewChat() {
+            this.newChatOpen = true;
+            this.newChatQuery = '';
+            this.newChatResults = [];
+            this.newChatRecipients = [];
+            this.newChatText = '';
+            this.newChatMedia = null;
+        },
+        closeNewChat() { this.newChatOpen = false; },
+
+        async searchUsers() {
+            const q = this.newChatQuery.trim();
+            if (!q) { this.newChatResults = []; return; }
+            this.searchingUsers = true;
+            try {
+                const r = await fetch('/api/dm/search?q=' + encodeURIComponent(q));
+                const data = await r.json();
+                if (data.success) this.newChatResults = data.users || [];
+            } catch (e) { /* sessiz */ }
+            finally { this.searchingUsers = false; }
+        },
+
+        addRecipient(u) {
+            if (!this.newChatRecipients.find(r => r.pk === u.pk)) {
+                this.newChatRecipients.push(u);
+            }
+            this.newChatQuery = '';
+            this.newChatResults = [];
+        },
+
+        removeRecipient(u) {
+            this.newChatRecipients = this.newChatRecipients.filter(r => r.pk !== u.pk);
+        },
+
+        onPickNewChatMedia(e) {
+            const f = e.target.files[0];
+            if (f) this.newChatMedia = f;
+            e.target.value = '';
+        },
+
+        async startNewChat() {
+            if (this.startingChat || this.newChatRecipients.length === 0) return;
+            this.startingChat = true;
+
+            try {
+                const usernames = this.newChatRecipients.map(u => u.username).join(',');
+                let r;
+                if (this.newChatMedia) {
+                    const fd = new FormData();
+                    fd.append('usernames', usernames);
+                    if (this.newChatText.trim()) fd.append('text', this.newChatText.trim());
+                    fd.append('file', this.newChatMedia);
+                    r = await fetch('/api/dm/new', { method: 'POST', body: fd });
+                } else {
+                    r = await fetch('/api/dm/new', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            usernames,
+                            text: this.newChatText.trim(),
+                        }),
+                    });
+                }
+                const data = await r.json();
+                if (data.success) {
+                    showToast('Mesaj gönderildi', 'success');
+                    this.closeNewChat();
+                    await this.loadThreads();
+                    if (data.thread_id) {
+                        this.openThread(data.thread_id);
+                    }
+                } else {
+                    showToast(data.message || 'Sohbet başlatılamadı', 'error');
+                }
+            } catch (e) {
+                showToast('Bağlantı hatası', 'error');
+            } finally {
+                this.startingChat = false;
+            }
+        },
+
+        openLightbox(url) { this.lightboxUrl = url; },
+    };
+}
+</script>
+{% endblock %}

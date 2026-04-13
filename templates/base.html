@@ -166,7 +166,8 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Alpine.js for interactions -->
+    <!-- Alpine.js for interactions (collapse plugin MUST load before core) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <!-- SweetAlert2 for notifications -->
@@ -197,12 +198,17 @@
                     <a href="{{ url_for('dashboard') }}" class="hover:text-ig-link">
                         <i class="fas fa-home text-xl"></i>
                     </a>
-                    <a href="{{ url_for('upload') }}" class="hover:text-ig-link">
+                    <a href="{{ url_for('upload') }}" class="hover:text-ig-link" title="Yükle">
                         <i class="fas fa-plus-square text-xl"></i>
                     </a>
-                    <a href="{{ url_for('queue_page') }}" class="hover:text-ig-link relative">
+                    <a href="{{ url_for('messages_page') }}" class="hover:text-ig-link relative" title="Mesajlar">
+                        <i class="fas fa-paper-plane text-xl"></i>
+                        <span class="absolute -top-2 -right-2 bg-ig-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+                              x-show="$store.dm.unread > 0" x-text="$store.dm.unread"></span>
+                    </a>
+                    <a href="{{ url_for('queue_page') }}" class="hover:text-ig-link relative" title="Kuyruk">
                         <i class="fas fa-clock text-xl"></i>
-                        <span class="absolute -top-2 -right-2 bg-ig-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" 
+                        <span class="absolute -top-2 -right-2 bg-ig-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
                               x-show="$store.queue.count > 0" x-text="$store.queue.count"></span>
                     </a>
                     
@@ -267,10 +273,27 @@
                             .catch(() => {});
                     }
                 });
-                
+
+                Alpine.store('dm', {
+                    unread: 0,
+                    updateUnread() {
+                        fetch('/api/dm/threads?amount=20')
+                            .then(r => r.ok ? r.json() : null)
+                            .then(data => {
+                                if (!data || !data.success) return;
+                                this.unread = (data.threads || []).filter(t => t.unread).length
+                                            + (data.pending || []).length;
+                            })
+                            .catch(() => {});
+                    }
+                });
+
                 // Check queue every 3 seconds for real-time updates
                 setInterval(() => Alpine.store('queue').updateCount(), 3000);
-                Alpine.store('queue').updateCount(); // İlk yüklemede de çalıştır
+                Alpine.store('queue').updateCount();
+                // DM unread sayısı 30 saniyede bir yenilensin (rate-limit dostu)
+                setInterval(() => Alpine.store('dm').updateUnread(), 30000);
+                Alpine.store('dm').updateUnread();
             });
         
         // Global functions

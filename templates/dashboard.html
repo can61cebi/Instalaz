@@ -3,9 +3,10 @@
 {% block title %}Dashboard - Instalaz{% endblock %}
 
 {% block content %}
+<div x-data="dashboard()">
 <!-- Compact Header -->
 <section class="relative bg-gradient-to-br from-ig-purple via-ig-secondary to-ig-primary text-white py-6">
-    <div class="relative max-w-6xl mx-auto px-4" x-data="dashboard()">
+    <div class="relative max-w-6xl mx-auto px-4">
         <!-- User Profile Card - Compact -->
         <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
             <div class="flex items-center space-x-4">
@@ -426,6 +427,7 @@ document.querySelector('button:has(.fa-sync-alt)').addEventListener('click', asy
     this.querySelector('i').classList.remove('animate-spin');
 });
 </script>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}

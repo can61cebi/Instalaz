@@ -32,7 +32,13 @@ from instagrapi.types import (
     StoryMention, StoryLocation, StoryLink, StoryHashtag, 
     Usertag, Location, StoryPoll, StorySticker
 )
-from instagrapi.exceptions import LoginRequired, ClientError, ChallengeRequired
+from instagrapi.exceptions import (
+    LoginRequired, ClientError, ChallengeRequired,
+    DirectThreadNotFound, DirectMessageNotFound, UserNotFound,
+    FeedbackRequired, PleaseWaitFewMinutes, RateLimitError,
+)
+import requests as _http_requests
+from urllib.parse import urlparse
 
 # Konfigürasyon
 class Config:
@@ -87,6 +93,18 @@ class Config:
     UNSPLASH_ACCESS_KEY = os.environ.get('UNSPLASH_ACCESS_KEY')
     PEXELS_API_KEY = os.environ.get('PEXELS_API_KEY')
 
+    # Direct Message ayarları
+    DM_TEMP_FOLDER = Path('temp') / 'dm'
+    DM_MAX_MEDIA_SIZE = 100 * 1024 * 1024  # 100MB
+    DM_ALLOWED_PHOTO_EXT = {'jpg', 'jpeg', 'png', 'webp', 'heic'}
+    DM_ALLOWED_VIDEO_EXT = {'mp4', 'mov', 'm4v'}
+    DM_ALLOWED_FILE_EXT = DM_ALLOWED_PHOTO_EXT | DM_ALLOWED_VIDEO_EXT
+    DM_THREAD_LIST_AMOUNT = 20
+    DM_PENDING_LIST_AMOUNT = 10
+    DM_MESSAGES_AMOUNT = 30
+    DM_POLL_AMOUNT = 15
+    DM_PROXY_ALLOWED_HOSTS = ('cdninstagram.com', 'fbcdn.net', 'instagram.com')
+
 # Flask uygulaması
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -95,6 +113,7 @@ CORS(app, origins=['http://localhost:*'])
 # Klasörleri oluştur
 for folder in [Config.UPLOAD_FOLDER, Config.TEMP_FOLDER, Config.SESSION_FOLDER, Config.STATIC_FOLDER]:
     folder.mkdir(exist_ok=True)
+Config.DM_TEMP_FOLDER.mkdir(parents=True, exist_ok=True)
 
 # Logging ayarları
 logging.basicConfig(
@@ -283,6 +302,10 @@ class InstagramManager:
                     # 2FA gerekli
                     self.clients[username] = cl
                     return False, "2FA doğrulaması gerekli", {"requires_2fa": True}
+                # instagrapi bazen post-login flow (reels_tray vs.) sırasında 400
+                # döner ama sessionid'yi çoktan aldı. Session cookie varsa başarılı say.
+                if cl.sessionid or (cl.authorization_data and cl.authorization_data.get("sessionid")):
+                    logger.warning(f"Login flow post-step failed, but sessionid acquired: {e}")
                 else:
                     raise e
             
@@ -785,9 +808,9 @@ def generate_unique_filename(original_filename: str) -> str:
 # Flask route'ları
 @app.route('/')
 def index():
-    """Ana sayfa"""
+    """Ana sayfa — login varsa dashboard'a yönlendir, yoksa landing göster."""
     if 'username' in session:
-        return render_template('dashboard.html', username=session['username'])
+        return redirect(url_for('dashboard'))
     return render_template('index.html')
 
 @app.route('/login', methods=['GET'])
@@ -858,17 +881,13 @@ def api_logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Ana panel"""
+    """Ana panel — stats server-side değil, frontend /api/user/stats ile async alınır."""
     username = session.get('username')
-    user_data = session.get('user_data')
-    
-    # İstatistikleri al
-    stats = ig_manager.get_user_stats(username)
-    
-    return render_template('dashboard.html', 
-                     username=username,
-                     user_info=user_data, # Değişiklik burada
-                     stats=stats)
+    user_data = session.get('user_data') or {}
+    return render_template('dashboard.html',
+                           username=username,
+                           user_info=user_data,
+                           stats=None)
 
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
@@ -1117,40 +1136,41 @@ def api_queue_tasks():
 @app.route('/api/user/stats')
 @login_required
 def api_user_stats():
-    """Kullanıcı istatistiklerini döndürür"""
+    """Kullanıcı istatistiklerini döndürür.
+
+    Instagram çağrısı challenge/rate-limit nedeniyle başarısız olursa,
+    500 dönmek yerine 200 ile default değerler döneriz ki UI kırılmasın.
+    """
+    username = session.get('username')
     try:
-        username = session.get('username')
         stats = ig_manager.get_user_stats(username)
-        
-        if stats:
-            # Upload istatistikleri ekle (basit hesaplama)
-            today_count = len([task for task in ig_manager.upload_queue 
-                             if task.get('created_at', '').startswith(datetime.now().strftime('%Y-%m-%d'))])
-            
-            # Haftalık upload sayısı için yaklaşık hesap
-            week_ago = datetime.now() - timedelta(days=7)
-            weekly_count = len([task for task in ig_manager.upload_queue 
-                              if datetime.fromisoformat(task.get('created_at', '1970-01-01')) > week_ago])
-            
-            return jsonify({
-                'success': True,
-                'stats': {
-                    'followers': stats.get('followers', 0),
-                    'following': stats.get('following', 0),
-                    'posts': stats.get('posts', 0),
-                    'todayUploads': today_count,
-                    'weeklyUploads': weekly_count,
-                    'storageUsed': '2.4 GB'  # Bu hesaplanabilir
-                }
-            })
-        else:
-            return jsonify({
-                'success': False, 
-                'message': 'İstatistikler alınamadı'
-            }), 500
     except Exception as e:
-        logger.error(f"Error getting user stats: {e}")
-        return jsonify({'success': False, 'message': 'Sunucu hatası'}), 500
+        logger.warning(f"get_user_stats raised for {username}: {e}")
+        stats = None
+
+    today_count = 0
+    weekly_count = 0
+    try:
+        today_key = datetime.now().strftime('%Y-%m-%d')
+        today_count = len([t for t in ig_manager.upload_queue if t.get('created_at', '').startswith(today_key)])
+        week_ago = datetime.now() - timedelta(days=7)
+        weekly_count = len([t for t in ig_manager.upload_queue
+                            if datetime.fromisoformat(t.get('created_at', '1970-01-01')) > week_ago])
+    except Exception as e:
+        logger.debug(f"upload_queue aggregation error: {e}")
+
+    stats = stats or {}
+    return jsonify({
+        'success': True,
+        'stats': {
+            'followers': stats.get('followers', 0),
+            'following': stats.get('following', 0),
+            'posts': stats.get('posts', 0),
+            'todayUploads': today_count,
+            'weeklyUploads': weekly_count,
+            'storageUsed': '2.4 GB'
+        }
+    })
 
 @app.route('/api/user/refresh', methods=['POST'])
 @login_required
@@ -1198,7 +1218,7 @@ def api_search_user(query):
     client = ig_manager.get_client(session['username'])
     if not client:
         return jsonify({'success': False, 'users': []})
-    users = client.user_search(query)
+    users = client.search_users(query)
     results = [{'username': u.username, 'full_name': u.full_name, 'profile_pic_url': str(u.profile_pic_url), 'is_verified': u.is_verified} for u in users[:10]]
     return jsonify({'success': True, 'users': results})
 
@@ -1393,6 +1413,532 @@ def cleanup_completed_tasks():
         removed_task = ig_manager.upload_queue.pop(i)
         CacheManager.delete(f"upload_task:{removed_task['id']}")
         logger.info(f"Cleaned up completed task: {removed_task['id']}")
+
+# ============================================================
+# Direct Messages (Sohbet) — instagrapi DirectMixin sarmalayıcı
+# ============================================================
+
+def _dm_safe_str(value) -> Optional[str]:
+    """instagrapi HttpUrl/Path tiplerini JSON için string'e çevir."""
+    if value is None:
+        return None
+    return str(value)
+
+
+def _dm_extract_media_payload(msg) -> Optional[Dict[str, Any]]:
+    """Bir DirectMessage içindeki medya türlerini UI için tek bir sözlüğe indir."""
+    payload: Dict[str, Any] = {}
+
+    media = getattr(msg, 'media', None)
+    if media is not None:
+        thumb = getattr(media, 'thumbnail_url', None)
+        video = getattr(media, 'video_url', None)
+        audio = getattr(media, 'audio_url', None)
+        if video:
+            payload['kind'] = 'video'
+            payload['video_url'] = _dm_safe_str(video)
+            payload['thumbnail_url'] = _dm_safe_str(thumb)
+        elif audio:
+            payload['kind'] = 'audio'
+            payload['audio_url'] = _dm_safe_str(audio)
+        elif thumb:
+            payload['kind'] = 'image'
+            payload['thumbnail_url'] = _dm_safe_str(thumb)
+
+    if not payload:
+        visual = getattr(msg, 'visual_media', None)
+        if visual is not None:
+            inner = getattr(visual, 'media', None)
+            if inner is not None:
+                vids = getattr(inner, 'video_versions', None) or []
+                imgs = (getattr(inner, 'image_versions2', None) or {}).get('candidates', []) if isinstance(getattr(inner, 'image_versions2', None), dict) else []
+                if vids:
+                    payload['kind'] = 'video'
+                    payload['video_url'] = _dm_safe_str(vids[0].get('url') if isinstance(vids[0], dict) else getattr(vids[0], 'url', None))
+                elif imgs:
+                    payload['kind'] = 'image'
+                    payload['thumbnail_url'] = _dm_safe_str(imgs[0].get('url') if isinstance(imgs[0], dict) else getattr(imgs[0], 'url', None))
+                payload.setdefault('ephemeral', True)
+
+    if not payload:
+        share = getattr(msg, 'media_share', None) or getattr(msg, 'clip', None)
+        if share is not None:
+            payload['kind'] = 'media_share'
+            payload['thumbnail_url'] = _dm_safe_str(getattr(share, 'thumbnail_url', None))
+            payload['video_url'] = _dm_safe_str(getattr(share, 'video_url', None))
+            owner = getattr(share, 'user', None)
+            if owner is not None:
+                payload['owner_username'] = getattr(owner, 'username', None)
+
+    if not payload:
+        xma = getattr(msg, 'xma_share', None)
+        if xma is not None:
+            payload['kind'] = 'xma_share'
+            payload['thumbnail_url'] = _dm_safe_str(getattr(xma, 'preview_url', None))
+            payload['video_url'] = _dm_safe_str(getattr(xma, 'video_url', None))
+            payload['title'] = getattr(xma, 'title_text', None) or getattr(xma, 'header_title_text', None)
+            payload['target_url'] = _dm_safe_str(getattr(xma, 'target_url', None))
+
+    if not payload:
+        link = getattr(msg, 'link', None)
+        if link is not None:
+            ctx = getattr(link, 'link_context', None)
+            payload['kind'] = 'link'
+            payload['link_url'] = _dm_safe_str(getattr(ctx, 'link_url', None) if ctx else None)
+            payload['link_title'] = getattr(ctx, 'link_title', None) if ctx else None
+            payload['link_summary'] = getattr(ctx, 'link_summary', None) if ctx else None
+            payload['link_image_url'] = _dm_safe_str(getattr(ctx, 'link_image_url', None) if ctx else None)
+
+    return payload or None
+
+
+def _dm_serialize_user(u) -> Dict[str, Any]:
+    return {
+        'pk': str(getattr(u, 'pk', '') or ''),
+        'username': getattr(u, 'username', '') or '',
+        'full_name': getattr(u, 'full_name', '') or '',
+        'profile_pic_url': _dm_safe_str(getattr(u, 'profile_pic_url', None)),
+        'is_verified': bool(getattr(u, 'is_verified', False)),
+    }
+
+
+def _dm_serialize_message(msg, my_user_id: str) -> Dict[str, Any]:
+    ts = getattr(msg, 'timestamp', None)
+    return {
+        'id': str(getattr(msg, 'id', '') or ''),
+        'user_id': str(getattr(msg, 'user_id', '') or ''),
+        'item_type': getattr(msg, 'item_type', None),
+        'text': getattr(msg, 'text', None),
+        'timestamp': ts.isoformat() if ts else None,
+        'is_sent_by_viewer': str(getattr(msg, 'user_id', '') or '') == str(my_user_id),
+        'media': _dm_extract_media_payload(msg),
+        'reactions': [
+            {'sender_id': str(r.sender_id), 'emoji': r.emoji}
+            for r in (getattr(getattr(msg, 'reactions', None), 'emojis', None) or [])
+        ] if getattr(msg, 'reactions', None) else [],
+    }
+
+
+def _dm_thread_title(thread, my_user_id: str) -> str:
+    title = getattr(thread, 'thread_title', None)
+    if title and getattr(thread, 'named', False):
+        return title
+    others = [u for u in (thread.users or []) if str(u.pk) != str(my_user_id)]
+    if others:
+        return ', '.join((u.full_name or u.username) for u in others[:3])
+    return title or 'Sohbet'
+
+
+def _dm_serialize_thread(thread, my_user_id: str, with_messages: bool = False) -> Dict[str, Any]:
+    last_msg = None
+    msgs = getattr(thread, 'messages', None) or []
+    if msgs:
+        m = msgs[0]
+        media_kind = (_dm_extract_media_payload(m) or {}).get('kind')
+        preview = m.text or {
+            'image': '📷 Fotoğraf', 'video': '🎬 Video', 'audio': '🎤 Sesli mesaj',
+            'media_share': '📎 Paylaşım', 'xma_share': '📎 Paylaşım', 'link': '🔗 Bağlantı'
+        }.get(media_kind or '', f'[{m.item_type or "mesaj"}]')
+        last_msg = {
+            'preview': (preview or '')[:80],
+            'timestamp': m.timestamp.isoformat() if getattr(m, 'timestamp', None) else None,
+            'is_sent_by_viewer': str(getattr(m, 'user_id', '') or '') == str(my_user_id),
+        }
+
+    seen = True
+    try:
+        seen = thread.is_seen(str(my_user_id))
+    except Exception:
+        pass
+
+    others = [u for u in (thread.users or []) if str(u.pk) != str(my_user_id)]
+    avatar = _dm_safe_str(others[0].profile_pic_url) if others else None
+    last_activity = getattr(thread, 'last_activity_at', None)
+
+    data = {
+        'id': str(thread.id),
+        'pk': str(getattr(thread, 'pk', '') or ''),
+        'title': _dm_thread_title(thread, my_user_id),
+        'is_group': bool(getattr(thread, 'is_group', False)),
+        'is_pending': bool(getattr(thread, 'pending', False)),
+        'muted': bool(getattr(thread, 'muted', False)),
+        'last_activity_at': last_activity.isoformat() if last_activity else None,
+        'last_message': last_msg,
+        'unread': not seen,
+        'avatar': avatar,
+        'users': [_dm_serialize_user(u) for u in (thread.users or [])],
+    }
+    if with_messages:
+        data['messages'] = [_dm_serialize_message(m, my_user_id) for m in msgs]
+    return data
+
+
+def _dm_get_client_or_error():
+    """Aktif client'ı döndür, yoksa (None, json_response, status) tuple verir."""
+    username = session.get('username')
+    client = ig_manager.get_client(username) if username else None
+    if not client:
+        return None, jsonify({'success': False, 'message': 'Instagram oturumu yok'}), 401
+    return client, None, None
+
+
+def _dm_handle_ig_exception(exc: Exception):
+    """instagrapi hatalarını standart bir JSON cevaba dönüştür."""
+    if isinstance(exc, (DirectThreadNotFound, DirectMessageNotFound, UserNotFound)):
+        return jsonify({'success': False, 'message': 'Bulunamadı', 'code': 'not_found'}), 404
+    if isinstance(exc, LoginRequired):
+        return jsonify({'success': False, 'message': 'Oturum süresi doldu, tekrar giriş yapın', 'code': 'login_required'}), 401
+    if isinstance(exc, ChallengeRequired):
+        return jsonify({'success': False, 'message': 'Instagram doğrulama istiyor', 'code': 'challenge'}), 403
+    if isinstance(exc, FeedbackRequired):
+        return jsonify({'success': False, 'message': 'Instagram işlemi engelledi (feedback_required). Lütfen biraz bekleyin.', 'code': 'feedback'}), 429
+    if isinstance(exc, (PleaseWaitFewMinutes, RateLimitError)):
+        return jsonify({'success': False, 'message': 'Hız limiti — birkaç dakika bekleyin.', 'code': 'rate_limit'}), 429
+    logger.error(f"DM error: {exc}", exc_info=True)
+    return jsonify({'success': False, 'message': f'İşlem başarısız: {exc}'}), 500
+
+
+@app.route('/messages')
+@login_required
+def messages_page():
+    """Sohbet (DM) sayfası."""
+    return render_template('messages.html')
+
+
+@app.route('/api/dm/threads')
+@login_required
+def api_dm_threads():
+    """Inbox + pending thread listesini döndürür."""
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+
+    try:
+        my_id = str(client.user_id)
+        amount = int(request.args.get('amount', Config.DM_THREAD_LIST_AMOUNT))
+        threads = client.direct_threads(amount=amount)
+        out_inbox = [_dm_serialize_thread(t, my_id) for t in threads]
+
+        pending: List[Dict[str, Any]] = []
+        try:
+            pending_threads = client.direct_pending_inbox(amount=Config.DM_PENDING_LIST_AMOUNT)
+            pending = [_dm_serialize_thread(t, my_id) for t in pending_threads]
+        except Exception as e:
+            logger.debug(f"pending inbox skipped: {e}")
+
+        return jsonify({
+            'success': True,
+            'me': {'pk': my_id, 'username': session.get('username')},
+            'threads': out_inbox,
+            'pending': pending,
+        })
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+
+
+@app.route('/api/dm/threads/<thread_id>')
+@login_required
+def api_dm_thread_detail(thread_id):
+    """Bir thread'in detayı + mesajları."""
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+    try:
+        amount = int(request.args.get('amount', Config.DM_MESSAGES_AMOUNT))
+        thread = client.direct_thread(int(thread_id), amount=amount)
+        return jsonify({
+            'success': True,
+            'me': {'pk': str(client.user_id), 'username': session.get('username')},
+            'thread': _dm_serialize_thread(thread, str(client.user_id), with_messages=True),
+        })
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+
+
+@app.route('/api/dm/threads/<thread_id>/messages')
+@login_required
+def api_dm_thread_messages(thread_id):
+    """Polling uç noktası — opsiyonel after_id ile yalnızca yeni mesajları döner."""
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+    try:
+        amount = int(request.args.get('amount', Config.DM_POLL_AMOUNT))
+        after_id = request.args.get('after_id')
+        msgs = client.direct_messages(int(thread_id), amount=amount)
+        my_id = str(client.user_id)
+        items = [_dm_serialize_message(m, my_id) for m in msgs]
+
+        if after_id:
+            new_items: List[Dict[str, Any]] = []
+            for it in items:
+                if it['id'] == after_id:
+                    break
+                new_items.append(it)
+            items = new_items
+
+        return jsonify({'success': True, 'messages': items})
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+
+
+@app.route('/api/dm/threads/<thread_id>/seen', methods=['POST'])
+@login_required
+def api_dm_thread_seen(thread_id):
+    """Thread'i 'okundu' olarak işaretle."""
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+    try:
+        ok = client.direct_send_seen(int(thread_id))
+        return jsonify({'success': bool(ok)})
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+
+
+@app.route('/api/dm/threads/<thread_id>/send', methods=['POST'])
+@login_required
+def api_dm_thread_send(thread_id):
+    """Mevcut bir thread'e text mesajı gönder."""
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+
+    data = request.get_json(silent=True) or {}
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({'success': False, 'message': 'Boş mesaj gönderilemez'}), 400
+
+    try:
+        msg = client.direct_send(text, thread_ids=[int(thread_id)])
+        return jsonify({
+            'success': True,
+            'message': _dm_serialize_message(msg, str(client.user_id)),
+        })
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+
+
+def _dm_save_uploaded_file(file_storage: FileStorage) -> Tuple[Path, str]:
+    """Yüklenen dosyayı geçici klasöre kaydet ve (path, kind) döndür."""
+    if not file_storage or not file_storage.filename:
+        raise ValueError('Dosya seçilmedi')
+    filename = secure_filename(file_storage.filename)
+    if '.' not in filename:
+        raise ValueError('Geçersiz dosya uzantısı')
+    ext = filename.rsplit('.', 1)[1].lower()
+    if ext not in Config.DM_ALLOWED_FILE_EXT:
+        raise ValueError(f'Bu uzantı desteklenmiyor: .{ext}')
+
+    safe_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{secrets.token_hex(4)}.{ext}"
+    target = Config.DM_TEMP_FOLDER / safe_name
+    file_storage.save(target)
+
+    if target.stat().st_size > Config.DM_MAX_MEDIA_SIZE:
+        target.unlink(missing_ok=True)
+        raise ValueError('Dosya çok büyük (max 100MB)')
+
+    kind = 'video' if ext in Config.DM_ALLOWED_VIDEO_EXT else 'photo'
+    return target, kind
+
+
+@app.route('/api/dm/threads/<thread_id>/upload', methods=['POST'])
+@login_required
+def api_dm_thread_upload(thread_id):
+    """Mevcut thread'e fotoğraf/video gönder."""
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+
+    file_storage = request.files.get('file')
+    try:
+        path, kind = _dm_save_uploaded_file(file_storage)
+    except ValueError as ve:
+        return jsonify({'success': False, 'message': str(ve)}), 400
+
+    try:
+        if kind == 'photo':
+            msg = client.direct_send_photo(path, thread_ids=[int(thread_id)])
+        else:
+            msg = client.direct_send_video(path, thread_ids=[int(thread_id)])
+
+        # Opsiyonel açıklama text'i birlikte gönderildiyse ayrı bir text mesajı olarak ilet.
+        caption = (request.form.get('text') or '').strip()
+        if caption:
+            try:
+                client.direct_send(caption, thread_ids=[int(thread_id)])
+            except Exception as e:
+                logger.warning(f"DM caption send failed: {e}")
+
+        return jsonify({
+            'success': True,
+            'message': _dm_serialize_message(msg, str(client.user_id)),
+        })
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+    finally:
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+@app.route('/api/dm/new', methods=['POST'])
+@login_required
+def api_dm_new_thread():
+    """Bir veya daha fazla kullanıcıyla yeni sohbet başlat veya mevcudunu kullan.
+
+    Beklenen alanlar (JSON veya form):
+      - usernames: virgülle ayrılmış kullanıcı adları (veya tek username)
+      - text: opsiyonel açılış mesajı (text gönderilmezse sadece thread döner)
+      - file: opsiyonel multipart medya
+    """
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+
+    if request.content_type and request.content_type.startswith('multipart/'):
+        usernames_raw = request.form.get('usernames') or request.form.get('username') or ''
+        text = (request.form.get('text') or '').strip()
+        file_storage = request.files.get('file')
+    else:
+        data = request.get_json(silent=True) or {}
+        usernames_raw = data.get('usernames') or data.get('username') or ''
+        text = (data.get('text') or '').strip()
+        file_storage = None
+
+    if isinstance(usernames_raw, list):
+        usernames = [u.strip().lstrip('@') for u in usernames_raw if u.strip()]
+    else:
+        usernames = [u.strip().lstrip('@') for u in str(usernames_raw).split(',') if u.strip()]
+
+    if not usernames:
+        return jsonify({'success': False, 'message': 'En az bir kullanıcı adı girin'}), 400
+    if not text and not file_storage:
+        return jsonify({'success': False, 'message': 'Mesaj veya medya ekleyin'}), 400
+
+    try:
+        user_ids: List[int] = []
+        for uname in usernames:
+            try:
+                uid = client.user_id_from_username(uname)
+                user_ids.append(int(uid))
+            except UserNotFound:
+                return jsonify({'success': False, 'message': f'Kullanıcı bulunamadı: @{uname}'}), 404
+
+        # Önce mevcut bir thread var mı kontrol et
+        thread_id: Optional[int] = None
+        try:
+            existing = client.direct_thread_by_participants(user_ids)
+            if isinstance(existing, dict):
+                t = existing.get('thread') or {}
+                tid = t.get('thread_id') if isinstance(t, dict) else None
+                if tid:
+                    thread_id = int(tid)
+        except Exception as e:
+            logger.debug(f"direct_thread_by_participants check skipped: {e}")
+
+        sent_msg = None
+        if file_storage:
+            path, kind = _dm_save_uploaded_file(file_storage)
+            try:
+                if thread_id:
+                    if kind == 'photo':
+                        sent_msg = client.direct_send_photo(path, thread_ids=[thread_id])
+                    else:
+                        sent_msg = client.direct_send_video(path, thread_ids=[thread_id])
+                else:
+                    if kind == 'photo':
+                        sent_msg = client.direct_send_photo(path, user_ids=user_ids)
+                    else:
+                        sent_msg = client.direct_send_video(path, user_ids=user_ids)
+            finally:
+                try:
+                    path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+            if text:
+                try:
+                    target_thread = thread_id or int(getattr(sent_msg, 'thread_id', 0) or 0)
+                    if target_thread:
+                        client.direct_send(text, thread_ids=[target_thread])
+                except Exception as e:
+                    logger.warning(f"DM text-after-media failed: {e}")
+        elif text:
+            if thread_id:
+                sent_msg = client.direct_send(text, thread_ids=[thread_id])
+            else:
+                sent_msg = client.direct_send(text, user_ids=user_ids)
+
+        new_thread_id = thread_id or int(getattr(sent_msg, 'thread_id', 0) or 0) if sent_msg else None
+        return jsonify({
+            'success': True,
+            'thread_id': str(new_thread_id) if new_thread_id else None,
+            'message': _dm_serialize_message(sent_msg, str(client.user_id)) if sent_msg else None,
+        })
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+
+
+@app.route('/api/dm/search')
+@login_required
+def api_dm_search():
+    """DM-amaçlı kullanıcı arama (direct_search). Boş query reddedilir."""
+    client, err, status = _dm_get_client_or_error()
+    if err:
+        return err, status
+    query = (request.args.get('q') or '').strip().lstrip('@')
+    if not query:
+        return jsonify({'success': True, 'users': []})
+    try:
+        try:
+            users = client.direct_search(query)
+        except Exception:
+            users = client.search_users(query)
+        return jsonify({
+            'success': True,
+            'users': [_dm_serialize_user(u) for u in users[:15]],
+        })
+    except Exception as e:
+        return _dm_handle_ig_exception(e)
+
+
+@app.route('/api/dm/media-proxy')
+@login_required
+def api_dm_media_proxy():
+    """Instagram CDN URL'lerini proxyleyerek tarayıcıda gösterir.
+
+    İki amaç:
+      1) Token'lı CDN URL'leri tarayıcıya doğrudan yansıtmamak (referrer/leak),
+      2) CORS ve hot-link engelini aşmak.
+    """
+    url = request.args.get('url', '').strip()
+    if not url:
+        return ('Missing url', 400)
+    parsed = urlparse(url)
+    host = (parsed.hostname or '').lower()
+    if not any(host.endswith(allowed) for allowed in Config.DM_PROXY_ALLOWED_HOSTS):
+        return ('Forbidden host', 403)
+    try:
+        upstream = _http_requests.get(url, stream=True, timeout=15, headers={
+            'User-Agent': 'Mozilla/5.0',
+        })
+        if upstream.status_code != 200:
+            return (f'Upstream error: {upstream.status_code}', 502)
+        content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+
+        def stream():
+            for chunk in upstream.iter_content(chunk_size=8192):
+                if chunk:
+                    yield chunk
+
+        resp = Response(stream(), mimetype=content_type)
+        resp.headers['Cache-Control'] = 'private, max-age=300'
+        return resp
+    except Exception as e:
+        logger.warning(f"DM media proxy error: {e}")
+        return ('Proxy error', 502)
+
 
 # Hata yönetimi
 @app.errorhandler(404)

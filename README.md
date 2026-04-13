@@ -1,287 +1,212 @@
-# 📸 Instalaz - Professional Instagram Content Management Platform
+# Instalaz — Instagram Content & Direct Message Manager
 
-<div align="center">
-  <h3>🚀 Upload, Process & Auto-Post 4K Content to Instagram</h3>
-  
-  [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
-  [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com)
-  [![Instagram API](https://img.shields.io/badge/Instagram-API-E4405F.svg)](https://instagram.com)
-  [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-</div>
+A self-hosted Flask application that wraps [`instagrapi`](https://github.com/subzeroid/instagrapi) to upload optimized 4K media (Posts, Stories, Reels) and manage Instagram direct messages from a single web UI.
+
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.x-green.svg)](https://flask.palletsprojects.com)
+[![instagrapi](https://img.shields.io/badge/instagrapi-2.3.0-E4405F.svg)](https://github.com/subzeroid/instagrapi)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## 🌟 Overview
+## Features
 
-**Instalaz** is a comprehensive web-based Instagram Content Management Platform built with Flask. It empowers content creators and businesses to efficiently manage their Instagram presence by providing automated 4K media processing, intelligent optimization, and seamless posting capabilities.
+### Content publishing
+- **Multi-format upload** — images (`jpg`, `jpeg`, `png`, `heic`, `heif`, `raw`, `tiff`, `bmp`) and video (`mp4`, `mov`, `avi`, `mkv`, `webm`, `m4v`); 2 GB per request.
+- **4K-aware processing** — automatic resize/crop for Story (1080×1920), Reel (1080×1920) and Post (1080×1350); EXIF orientation, sharpening, progressive JPEG output.
+- **Video pipeline** — FFmpeg first (`libx264`, CRF 23, `slow` preset, 10 Mbps), MoviePy fallback when FFmpeg is unavailable.
+- **Background queue** — uploads are queued and processed by a worker thread; per-account human-paced timing (3–15 min between uploads, randomized) to reduce account-action flags.
+- **Optional watermarking** — text watermarks at configurable positions (`MediaProcessor.add_watermark`).
 
-### ✨ Key Features
+### Direct messages (chat)
+- Inbox + pending requests, unread badge, last-message preview.
+- Open a thread to view text, photos, videos, voice notes, post/reel reshares (incl. `xma_share`) and link previews.
+- Send text or upload a photo/video into an existing thread.
+- Start a new conversation by username (single or group); existing threads are reused via `direct_thread_by_participants`.
+- ~5 s message polling on the active thread, ~15 s thread-list polling, automatic seen-marking.
+- All Instagram CDN media is served through a server-side proxy (`/api/dm/media-proxy`), so signed CDN tokens never reach the browser.
 
-- 🎯 **4K Media Processing** - Automatically optimize high-resolution images and videos
-- 📱 **Multi-Format Support** - Handle images (JPG, PNG, HEIC, RAW, TIFF, BMP) and videos (MP4, MOV, AVI, MKV, WebM, M4V)
-- 🎬 **Content Type Optimization** - Specific processing for Posts, Stories, and Reels
-- ⚡ **Queue Management** - Background processing for batch uploads
-- 🔒 **Secure Sessions** - Persistent Instagram authentication with 2FA support
-- 🛡️ **Rate Limiting** - Built-in protection (50 uploads/hour, 5 login attempts max)
-- 💧 **Watermarking** - Custom watermark support for brand protection
-- 🎞️ **Video Processing** - FFmpeg integration with MoviePy fallback
+### Authentication & safety
+- Persistent Instagram sessions (via `Client.dump_settings`) with **2FA** support.
+- Per-IP login throttling (5 attempts / hour), per-account upload throttling (15 / hour, 50 / day, 3 min minimum interval).
+- Optional Redis cache (`REDIS_URL`); transparent in-memory fallback when Redis is not running.
+- Optional outbound proxy via `PROXY_URL`.
+- Tailwind + Alpine.js UI with dark mode.
 
 ---
 
-## 📱 Screenshots
+## Screenshots
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image2.png" alt="Main Dashboard Interface" width="500">
+  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image2.png" alt="Dashboard" width="600">
 </p>
-<p align="center"><em>Figure 1. Main Dashboard - Content Overview & Management</em></p>
+<p align="center"><em>Dashboard</em></p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image3.png" alt="Upload Interface" width="500">
+  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image3.png" alt="Upload" width="600">
 </p>
-<p align="center"><em>Figure 2. Upload Interface - Drag & Drop 4K Media Processing</em></p>
+<p align="center"><em>Upload</em></p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image4.png" alt="Queue Management" width="500">
+  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/image4.png" alt="Queue" width="600">
 </p>
-<p align="center"><em>Figure 3. Queue Management - Real-time Processing Status</em></p>
+<p align="center"><em>Queue</em></p>
 
 ---
 
-## 🛠️ Tech Stack
+## Tech stack
 
-| Component | Technology |
-|-----------|------------|
-| **Backend** | Python 3.8+, Flask |
-| **Instagram API** | instagrapi |
-| **Media Processing** | FFmpeg, MoviePy, PIL, OpenCV |
-| **Caching** | Redis (with in-memory fallback) |
-| **Frontend** | HTML5, CSS3, JavaScript |
-| **Authentication** | Session-based with 2FA support |
+| Layer | Components |
+|-------|-----------|
+| Backend | Python 3.10+, Flask, Flask-CORS |
+| Instagram | `instagrapi` 2.3.0 (subzeroid fork) |
+| Media | FFmpeg, MoviePy, Pillow, OpenCV, NumPy |
+| Cache | Redis (optional), in-memory fallback |
+| Frontend | Jinja2, Tailwind CSS (CDN), Alpine.js, SweetAlert2, Font Awesome |
 
 ---
 
-## 🚀 Installation & Setup
+## Installation
 
 ### Prerequisites
 
-Before installing Instalaz, ensure you have the following installed on your system:
+- Python 3.10+
+- FFmpeg on `PATH`
+- Redis (optional)
 
-- **Python 3.8+** - [Download here](https://python.org/downloads/)
-- **FFmpeg** - [Installation guide](https://ffmpeg.org/download.html)
-- **Redis** (Optional, for better performance) - [Installation guide](https://redis.io/download)
+### Setup
 
-### 📥 Installation Steps
+```bash
+git clone https://github.com/can61cebi/Instalaz.git
+cd Instalaz
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/can61cebi/Instalaz.git
-   cd Instalaz
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   pip install flask flask-cors instagrapi moviepy pillow opencv-python redis requests
-   ```
-
-3. **Setup Environment Variables** (Optional)
-   ```bash
-   export SECRET_KEY="your-secret-key-here"
-   export REDIS_URL="redis://localhost:6379"
-   export PROXY_URL="your-proxy-url" # Optional
-   ```
-
-4. **Create Required Directories**
-   ```bash
-   mkdir -p uploads temp sessions static
-   ```
-
-5. **Install FFmpeg** (Required for video processing)
-   
-   **Ubuntu/Debian:**
-   ```bash
-   sudo apt update
-   sudo apt install ffmpeg
-   ```
-   
-   **macOS:**
-   ```bash
-   brew install ffmpeg
-   ```
-   
-   **Windows:**
-   Download from [FFmpeg official site](https://ffmpeg.org/download.html) and add to PATH
-
-6. **Start Redis** (Optional but recommended)
-   ```bash
-   redis-server
-   ```
-
-7. **Run the Application**
-   ```bash
-   python app.py
-   ```
-
-The application will be available at `http://localhost:5000`
-
----
-
-## 📖 Usage Guide
-
-### 🔐 Getting Started
-
-1. **Launch Application**: Navigate to `http://localhost:5000`
-2. **Instagram Login**: Enter your Instagram credentials
-3. **2FA Setup**: If enabled, complete two-factor authentication
-4. **Upload Media**: Drag and drop or select your 4K images/videos
-5. **Configure Settings**: Choose content type (Post/Story/Reel)
-6. **Process & Post**: Let Instalaz optimize and schedule your content
-
-### 📁 Supported File Formats
-
-#### Images
-- **Formats**: JPG, JPEG, PNG, HEIC, RAW, TIFF, BMP
-- **Max Size**: 2GB
-- **Output**: Optimized for Instagram (1080x1350 for posts, 1080x1920 for stories)
-
-#### Videos
-- **Formats**: MP4, MOV, AVI, MKV, WebM, M4V
-- **Max Size**: 2GB
-- **Processing**: 10Mbps bitrate, CRF 23, H.264 encoding
-- **Output**: Instagram-ready formats with optimal compression
-
-### ⚙️ Configuration Options
-
-The application can be configured through the `Config` class in `app.py`:
-
-```python
-# File upload limits
-MAX_CONTENT_LENGTH = 2 * 1024 * 1024 * 1024  # 2GB
-
-# Instagram dimensions
-INSTAGRAM_STORY_SIZE = (1080, 1920)
-INSTAGRAM_POST_SIZE = (1080, 1350)
-INSTAGRAM_REEL_SIZE = (1080, 1920)
-
-# Video processing settings
-VIDEO_BITRATE = '10M'
-VIDEO_CRF = 23
-VIDEO_PRESET = 'slow'
-
-# Rate limiting
-UPLOAD_RATE_LIMIT = 50  # uploads per hour
-LOGIN_RATE_LIMIT = 5    # login attempts max
+pip install flask flask-cors instagrapi moviepy pillow opencv-python numpy redis requests
 ```
 
+### Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `SECRET_KEY` | Flask session secret. Auto-generated if unset. |
+| `REDIS_URL` | Redis connection (default `redis://localhost:6379/0`). Falls back to in-memory if unreachable. |
+| `PROXY_URL` | Outbound HTTP proxy passed to `instagrapi.Client.set_proxy`. Optional. |
+
+### Run
+
+```bash
+python app.py
+```
+
+The app listens on `http://localhost:5000`.
+
 ---
 
-## 🏗️ Architecture
+## Usage
 
-### Core Components
+1. Open `http://localhost:5000` and log in with your Instagram credentials (2FA prompt is shown when required).
+2. **Upload** — drag & drop into the upload page, pick a target type (Post / Story / Reel), and let the queue worker publish it.
+3. **Queue** — track per-task status (pending → processing → uploading → completed/failed) with live polling.
+4. **Mesajlar (Messages)** — open the paper-plane icon in the top bar:
+   - Pick a thread on the left to read the conversation.
+   - Send text or attach a photo/video from the composer.
+   - Hit *Yeni Mesaj* to search a username and start a new conversation (multi-recipient supported).
 
-| Component | Description | Location |
-|-----------|-------------|----------|
-| **InstagramManager** | Handles Instagram authentication & sessions | `app.py:114-249` |
-| **MediaProcessor** | 4K media optimization & format conversion | `app.py:275-606` |
-| **CacheManager** | Redis caching with in-memory fallback | `app.py:252-272` |
-| **Config** | Application configuration management | `app.py:36-80` |
+---
 
-### Directory Structure
+## HTTP API
+
+All API routes require an authenticated session.
+
+### Auth & account
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/login` | Login (supports `verification_code` for 2FA) |
+| `POST` | `/api/logout` | Destroy session |
+| `GET`  | `/api/user/stats` | Followers, following, post & queue counts |
+| `POST` | `/api/user/refresh` | Refresh cached profile info |
+| `GET`  | `/api/system/status` | Worker / queue / Redis state |
+| `GET`  | `/api/search/user/<q>` | Username search |
+| `GET`  | `/api/search/location/<q>` | Location search |
+
+### Uploads
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET/POST` | `/upload` | Upload page / submit files |
+| `GET`  | `/upload/status/<task_id>` | Status of a single queued task |
+| `GET`  | `/queue` | Queue page |
+| `GET`  | `/api/queue/count` | Pending count |
+| `GET`  | `/api/queue/tasks` | Task list with statuses |
+
+### Direct messages
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET`  | `/messages` | Chat UI |
+| `GET`  | `/api/dm/threads` | Inbox + pending threads |
+| `GET`  | `/api/dm/threads/<thread_id>` | Thread detail + recent messages |
+| `GET`  | `/api/dm/threads/<thread_id>/messages?after_id=` | Polling endpoint, returns messages newer than `after_id` |
+| `POST` | `/api/dm/threads/<thread_id>/seen` | Mark thread as seen |
+| `POST` | `/api/dm/threads/<thread_id>/send` | Send text (`{"text": "..."}`) |
+| `POST` | `/api/dm/threads/<thread_id>/upload` | `multipart/form-data` with `file` (+ optional `text`) |
+| `POST` | `/api/dm/new` | Start a chat: `usernames` (comma-separated), `text`, optional `file` |
+| `GET`  | `/api/dm/search?q=` | DM-targeted user search |
+| `GET`  | `/api/dm/media-proxy?url=` | Whitelisted CDN proxy for `*.cdninstagram.com`, `*.fbcdn.net`, `*.instagram.com` |
+
+---
+
+## Project layout
 
 ```
 Instalaz/
-├── app.py                 # Main Flask application
-├── topla.py              # File scanning utility
-├── templates/            # Jinja2 HTML templates
-├── static/               # Static assets (CSS, JS, images)
-├── uploads/              # User uploaded files
-├── temp/                 # Temporary processed files
-├── sessions/             # Instagram session storage
-└── README.md            # This file
+├── app.py                  # Flask app, Instagram manager, media processor, DM API
+├── templates/
+│   ├── base.html           # Layout, nav, Alpine stores (queue + dm unread)
+│   ├── index.html          # Landing
+│   ├── login.html          # Login + 2FA
+│   ├── dashboard.html      # Account overview
+│   ├── upload.html         # Upload UI
+│   ├── queue.html          # Live queue status
+│   ├── messages.html       # Chat (DM) UI
+│   └── 404.html / 500.html
+├── static/                 # Default avatars, sample thumbnails
+├── images/                 # README screenshots
+├── uploads/                # Persisted user uploads (gitignored)
+├── temp/                   # Working files for processing (gitignored)
+└── sessions/               # Persisted instagrapi session JSON (gitignored)
 ```
 
 ---
 
-## 🔧 API Endpoints
+## Configuration
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Main dashboard |
-| `/upload` | GET/POST | File upload interface |
-| `/queue` | GET | Processing queue status |
-| `/login` | POST | Instagram authentication |
-| `/logout` | POST | Session termination |
-| `/process` | POST | Media processing trigger |
+Tunable constants live in `Config` at the top of `app.py`. Key values:
 
----
-
-## 🛡️ Security Features
-
-- **🔐 Session Management**: Secure Instagram session persistence
-- **🚦 Rate Limiting**: Protection against abuse (50 uploads/hour)
-- **🔒 File Validation**: Comprehensive file type and size checks
-- **🛡️ CSRF Protection**: Built-in Flask security measures
-- **📝 Secure Logging**: No sensitive data in logs
+| Constant | Default | Notes |
+|----------|---------|-------|
+| `MAX_CONTENT_LENGTH` | 2 GB | Per-request upload size |
+| `STORY_DURATION_LIMIT` | 15 s | Story trim |
+| `REEL_MAX_DURATION` | 90 s | Reel trim |
+| `VIDEO_BITRATE` / `VIDEO_CRF` / `VIDEO_PRESET` | `10M` / `23` / `slow` | FFmpeg encoding |
+| `RATE_LIMIT_UPLOADS` | 15 / hour | Per account |
+| `DAILY_UPLOAD_LIMIT` | 50 / day | Per account |
+| `MIN_UPLOAD_INTERVAL` | 180 s | Minimum gap between uploads |
+| `DM_MAX_MEDIA_SIZE` | 100 MB | DM photo/video upload cap |
+| `DM_PROXY_ALLOWED_HOSTS` | `cdninstagram.com`, `fbcdn.net`, `instagram.com` | Hosts allowed through `/api/dm/media-proxy` |
 
 ---
 
-## 📋 Requirements
+## Security notes
 
-### System Requirements
-- **OS**: Windows 10+, macOS 10.14+, Ubuntu 18.04+
-- **RAM**: 4GB minimum, 8GB recommended
-- **Storage**: 10GB free space for media processing
-- **Network**: Stable internet connection for Instagram API
-
-### Python Dependencies
-```
-flask>=2.0.0
-flask-cors>=3.0.0
-instagrapi>=1.16.0
-moviepy>=1.0.3
-pillow>=8.0.0
-opencv-python>=4.5.0
-redis>=4.0.0
-requests>=2.25.0
-```
+- `sessions/instagram_sessions.json` contains live Instagram cookies and device data. **Never commit it.** It is gitignored by default.
+- Avoid exposing this app on a public network without an additional auth layer — there is no multi-tenant access control.
+- The CDN proxy enforces a host whitelist; do not loosen it without understanding SSRF implications.
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
----
+## Contact
 
-## 🆘 Support & Troubleshooting
-
-### Common Issues
-
-**❌ FFmpeg not found**
-```bash
-# Install FFmpeg and ensure it's in your PATH
-which ffmpeg  # Should show installation path
-```
-
-**❌ Instagram login failed**
-- Check credentials
-- Verify 2FA settings
-- Ensure stable internet connection
-
-**❌ Redis connection error**
-- Install and start Redis server
-- Application will fallback to in-memory caching
-
-### Getting Help
-
-- 📧 **Email**: [can@cebi.tr](mailto:can@cebi.tr)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/can61cebi/Instalaz/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/can61cebi/Instalaz/discussions)
-
----
-
-<div align="center">
-  <h3>⭐ Star this repository if you found it helpful!</h3>
-  
-  **Made with ❤️ for the Instagram community**
-  
-  [🔗 Repository](https://github.com/can61cebi/Instalaz)
+- Email: [can@cebi.tr](mailto:can@cebi.tr)
+- Issues: [GitHub Issues](https://github.com/can61cebi/Instalaz/issues)
