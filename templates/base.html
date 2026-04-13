@@ -3,239 +3,469 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Instalaz - Instagram Content Management Platform{% endblock %}</title>
-    
-<!-- Tailwind CSS v3 CDN -->
+    <title>{% block title %}Instalaz — Instagram İçerik & Mesaj Stüdyosu{% endblock %}</title>
+
+    <!-- Dark-mode boot (must run before Tailwind so .dark is on <html> first paint, no FOUC) -->
+    <script>
+        try {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) {}
+    </script>
+
+    <!-- Tailwind CSS v3 CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        display: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'],
+                        sans: ['Geist', 'system-ui', 'sans-serif'],
+                        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
+                    },
                     colors: {
-                        'ig-purple': '#833AB4',
-                        'ig-primary': '#C13584',
+                        // Instagram brand spectrum
+                        'ig-purple':    '#833AB4',
+                        'ig-primary':   '#C13584',
                         'ig-secondary': '#E1306C',
-                        'ig-accent': '#F77737',
-                        'ig-yellow': '#FCAF45',
-                        'ig-dark': '#000000',
-                        'ig-dark-secondary': '#262626',
-                        'ig-light': '#FFFFFF',
-                        'ig-light-secondary': '#FAFAFA',
-                        'ig-text': '#262626',
-                        'ig-text-secondary': '#8E8E8E',
-                        'ig-gray': '#8E8E8E',
-                        'ig-border': '#DBDBDB',
-                        'ig-error': '#ED4956',
-                        'ig-success': '#4CAF50',
-                        'ig-link': '#0095F6',
-                    }
+                        'ig-accent':    '#F77737',
+                        'ig-yellow':    '#FCAF45',
+                        // Surfaces (light)
+                        'ig-bg':        '#FAFAF7',
+                        'ig-surface':   '#FFFFFF',
+                        // Surfaces (dark)
+                        'ig-dark':      '#0B0B10',
+                        'ig-dark-secondary': '#15151D',
+                        // Text & borders
+                        'ig-text':      '#1A1A22',
+                        'ig-text-secondary': '#7A7A85',
+                        'ig-border':    '#E8E5DF',
+                        'ig-link':      '#0095F6',
+                        'ig-error':     '#ED4956',
+                        'ig-success':   '#12B981',
+                        'ig-light':     '#FFFFFF',
+                        'ig-light-secondary': '#FAFAF7',
+                        'ig-gray':      '#7A7A85',
+                    },
+                    boxShadow: {
+                        'glass-sm': '0 1px 2px rgba(15,15,25,0.04), 0 1px 1px rgba(15,15,25,0.03)',
+                        'glass':    '0 8px 32px -4px rgba(60,30,90,0.18), 0 2px 8px rgba(15,15,25,0.04)',
+                        'glass-lg': '0 24px 64px -12px rgba(60,30,90,0.28), 0 4px 16px rgba(15,15,25,0.08)',
+                        'inset-hairline': 'inset 0 1px 0 rgba(255,255,255,0.6)',
+                    },
                 }
             }
         }
     </script>
-    
+
+    <!-- Fonts: Bricolage Grotesque (display) + Geist (body/mono) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <!-- Custom Styles -->
     <style type="text/tailwindcss">
+        @layer base {
+            html, body { font-family: 'Geist', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+            h1, h2, h3, h4 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing: -0.015em; }
+        }
+
         @layer utilities {
+            /* ===== Instagram gradient + branded text ===== */
             .ig-gradient {
-                background: linear-gradient(45deg, #833AB4, #C13584, #E1306C, #FCAF45, #F77737);
+                background: linear-gradient(135deg, #833AB4 0%, #C13584 28%, #E1306C 55%, #F77737 80%, #FCAF45 100%);
             }
-            
             .ig-gradient-text {
-                @apply bg-gradient-to-r from-ig-purple via-ig-primary to-ig-secondary;
+                background: linear-gradient(135deg, #833AB4 0%, #C13584 35%, #E1306C 65%, #F77737 100%);
                 -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
                 background-clip: text;
+                -webkit-text-fill-color: transparent;
+                color: transparent;
             }
-            
-            .ig-button {
-                @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95;
-            }
-            
-            .ig-input {
-                @apply w-full px-4 py-3 rounded-lg border border-ig-border bg-ig-light-secondary 
-                       focus:outline-none focus:ring-2 focus:ring-ig-link focus:border-transparent
-                       placeholder-ig-text-secondary text-ig-text;
-            }
-            
-            .ig-card {
-                @apply bg-white rounded-xl shadow-sm border border-ig-border p-6 
-                       hover:shadow-md transition-shadow duration-200;
-            }
-            
-            .dark .ig-card {
-                @apply bg-ig-dark-secondary border-gray-700;
+            .ig-ring {
+                background: conic-gradient(from 200deg at 50% 50%, #833AB4, #C13584, #E1306C, #F77737, #FCAF45, #833AB4);
             }
 
-            .dark .ig-text {
-                @apply text-ig-light;
+            /* ===== Glassmorphism primitives ===== */
+            .glass {
+                background: rgba(255,255,255,0.62);
+                backdrop-filter: blur(22px) saturate(180%);
+                -webkit-backdrop-filter: blur(22px) saturate(180%);
+                border: 1px solid rgba(255,255,255,0.55);
+                box-shadow: 0 8px 32px -4px rgba(60,30,90,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
+            }
+            .glass-strong {
+                background: rgba(255,255,255,0.78);
+                backdrop-filter: blur(28px) saturate(200%);
+                -webkit-backdrop-filter: blur(28px) saturate(200%);
+                border: 1px solid rgba(255,255,255,0.7);
+                box-shadow: 0 24px 64px -12px rgba(60,30,90,0.28), inset 0 1px 0 rgba(255,255,255,0.85);
+            }
+            .glass-nav {
+                background: rgba(255,255,255,0.7);
+                backdrop-filter: blur(20px) saturate(180%);
+                -webkit-backdrop-filter: blur(20px) saturate(180%);
+                border-bottom: 1px solid rgba(232,229,223,0.6);
+            }
+            .glass-input {
+                background: rgba(255,255,255,0.7);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border: 1px solid rgba(232,229,223,0.9);
+                transition: border-color .2s, box-shadow .2s, background .2s;
+            }
+            .glass-input:focus {
+                outline: none;
+                border-color: rgba(225,48,108,0.55);
+                box-shadow: 0 0 0 4px rgba(225,48,108,0.12);
+                background: rgba(255,255,255,0.92);
+            }
+            .glass-divider {
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(15,15,25,0.12), transparent);
             }
 
-            .dark .ig-text-secondary {
-                @apply text-gray-400;
+            .dark .glass {
+                background: rgba(21,21,29,0.6);
+                border-color: rgba(255,255,255,0.06);
+                box-shadow: 0 8px 32px -4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
             }
-            
-            .dark .ig-input {
-                @apply bg-ig-dark border-gray-700 text-white placeholder-gray-500;
+            .dark .glass-strong {
+                background: rgba(21,21,29,0.78);
+                border-color: rgba(255,255,255,0.08);
+                box-shadow: 0 24px 64px -12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05);
             }
-            
-            .spinner {
-                border: 3px solid rgba(0, 0, 0, 0.1);
+            .dark .glass-nav {
+                background: rgba(11,11,16,0.68);
+                border-bottom-color: rgba(255,255,255,0.06);
+            }
+            .dark .glass-input {
+                background: rgba(21,21,29,0.65);
+                border-color: rgba(255,255,255,0.08);
+                color: #FAFAF7;
+            }
+            .dark .glass-input:focus {
+                background: rgba(21,21,29,0.85);
+                border-color: rgba(225,48,108,0.7);
+            }
+            .dark .glass-divider {
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+            }
+
+            /* ===== Atmospheric gradient mesh background (pinned) ===== */
+            .atmosphere {
+                position: fixed;
+                inset: 0;
+                z-index: -1;
+                overflow: hidden;
+                pointer-events: none;
+                background: #FAFAF7;
+            }
+            .atmosphere::before, .atmosphere::after {
+                content: "";
+                position: absolute;
+                width: 60vmax; height: 60vmax;
                 border-radius: 50%;
-                border-top: 3px solid #E1306C;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
+                filter: blur(110px);
+                opacity: 0.55;
+                will-change: transform;
+            }
+            .atmosphere::before {
+                top: -25vmax; left: -10vmax;
+                background: radial-gradient(circle at 30% 30%, #C13584 0%, #833AB4 35%, transparent 70%);
+                animation: meshDriftA 22s ease-in-out infinite alternate;
+            }
+            .atmosphere::after {
+                bottom: -25vmax; right: -15vmax;
+                background: radial-gradient(circle at 70% 70%, #FCAF45 0%, #F77737 35%, transparent 70%);
+                animation: meshDriftB 28s ease-in-out infinite alternate;
+            }
+            .atmosphere .mesh-c {
+                position: absolute;
+                top: 50%; left: 50%;
+                width: 50vmax; height: 50vmax;
+                margin: -25vmax 0 0 -25vmax;
+                border-radius: 50%;
+                filter: blur(120px);
+                opacity: 0.35;
+                background: radial-gradient(circle, #E1306C 0%, transparent 65%);
+                animation: meshDriftC 32s ease-in-out infinite alternate;
+            }
+            .atmosphere .grain {
+                position: absolute; inset: 0;
+                background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+                opacity: 0.06;
+                mix-blend-mode: overlay;
+            }
+            .dark .atmosphere { background: #07070C; }
+            .dark .atmosphere::before { opacity: 0.35; }
+            .dark .atmosphere::after  { opacity: 0.32; }
+            .dark .atmosphere .mesh-c { opacity: 0.22; }
+            .dark .atmosphere .grain  { opacity: 0.10; mix-blend-mode: screen; }
+
+            @keyframes meshDriftA {
+                0%   { transform: translate3d(0,0,0) scale(1); }
+                100% { transform: translate3d(8vmax,4vmax,0) scale(1.1); }
+            }
+            @keyframes meshDriftB {
+                0%   { transform: translate3d(0,0,0) scale(1); }
+                100% { transform: translate3d(-6vmax,-5vmax,0) scale(1.15); }
+            }
+            @keyframes meshDriftC {
+                0%   { transform: translate3d(-50%,-50%,0) scale(0.9); }
+                100% { transform: translate3d(-40%,-60%,0) scale(1.1); }
             }
 
-            .dark .spinner {
-                border-top-color: #E1306C;
+            /* Honor reduced motion */
+            @media (prefers-reduced-motion: reduce) {
+                .atmosphere::before,
+                .atmosphere::after,
+                .atmosphere .mesh-c { animation: none !important; }
             }
-            
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
+
+            /* ===== Buttons ===== */
+            .btn {
+                display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+                padding: 0.625rem 1.125rem;
+                border-radius: 0.875rem;
+                font-weight: 600;
+                font-size: 0.875rem;
+                letter-spacing: -0.005em;
+                transition: transform .12s ease, box-shadow .2s ease, background .2s, color .2s;
+                line-height: 1;
+                white-space: nowrap;
+                user-select: none;
             }
-            
-            /* Ensure feature sections have proper z-index and positioning */
-            #features {
-                position: relative;
-                z-index: 10;
-                background-color: #f9fafb;
+            .btn:active { transform: translateY(1px) scale(0.995); }
+            .btn-primary {
+                background: linear-gradient(135deg, #833AB4, #C13584 40%, #E1306C 75%, #F77737);
+                color: #fff;
+                box-shadow: 0 8px 24px -8px rgba(193,53,132,0.7), inset 0 1px 0 rgba(255,255,255,0.25);
             }
-            
-            /* Glass Morphism Phone Effect */
-            .phone-mockup {
-                background: rgba(255, 255, 255, 0.15) !important;
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            }
-            
-            .phone-mockup .bg-ig-white {
-                background: rgba(255, 255, 255, 0.95) !important;
+            .btn-primary:hover { box-shadow: 0 12px 32px -8px rgba(193,53,132,0.85), inset 0 1px 0 rgba(255,255,255,0.3); }
+            .btn-ghost {
+                background: rgba(255,255,255,0.55);
                 backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.18);
+                border: 1px solid rgba(232,229,223,0.9);
+                color: #1A1A22;
             }
-            
-            /* Better text contrast in phone mockup */
-            .phone-mockup .text-ig-dark {
-                color: #374151 !important;
+            .btn-ghost:hover { background: rgba(255,255,255,0.85); }
+            .dark .btn-ghost {
+                background: rgba(255,255,255,0.06); color: #FAFAF7;
+                border-color: rgba(255,255,255,0.1);
             }
-            
-            /* Enhanced story ring with glass effect */
+            .dark .btn-ghost:hover { background: rgba(255,255,255,0.12); }
+            .btn-link {
+                background: rgba(0,149,246,0.10); color: #0095F6;
+                border: 1px solid rgba(0,149,246,0.18);
+            }
+            .btn-link:hover { background: rgba(0,149,246,0.18); }
+
+            /* ===== Cards (matches feed) ===== */
+            .card {
+                @apply glass rounded-2xl;
+            }
+            .card-tight { @apply glass rounded-xl; }
+            .card-strong { @apply glass-strong rounded-2xl; }
+
+            /* ===== Pills / chips ===== */
+            .pill {
+                display: inline-flex; align-items: center; gap: .375rem;
+                padding: .25rem .625rem; border-radius: 9999px;
+                font-size: .75rem; font-weight: 600;
+                background: rgba(15,15,25,0.06);
+                color: #1A1A22;
+            }
+            .pill-grad {
+                background: linear-gradient(135deg, rgba(193,53,132,.18), rgba(247,119,55,.18));
+                color: #C13584;
+            }
+            .dark .pill { background: rgba(255,255,255,0.08); color: #FAFAF7; }
+
+            /* ===== Story ring ===== */
             .story-ring {
-                background: linear-gradient(45deg, #833AB4, #C13584, #E1306C, #F77737);
+                background: conic-gradient(from 200deg, #833AB4, #C13584, #E1306C, #F77737, #FCAF45, #833AB4);
                 padding: 2px;
-                border-radius: 50%;
-                background-clip: padding-box;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                border-radius: 9999px;
             }
-            
-            /* Enhanced gradient for Instagram elements */
+
+            /* ===== Spinner (legacy compatibility) ===== */
+            .spinner {
+                width: 1.75rem; height: 1.75rem;
+                border-radius: 50%;
+                border: 2.5px solid rgba(225,48,108,0.18);
+                border-top-color: #E1306C;
+                animation: spin 0.9s linear infinite;
+            }
+            @keyframes spin { to { transform: rotate(360deg); } }
+
+            /* ===== Legacy aliases — older templates still use these ===== */
+            .ig-card { @apply card p-6; }
+            .ig-button { @apply btn btn-ghost; }
+            /* NOTE: padding-inline is set here as raw CSS (not @apply px-4) so
+               that Tailwind's pl-/pr- utility overrides win normally. */
+            .ig-input {
+                @apply glass-input w-full py-2.5 rounded-xl text-sm;
+                padding-inline: 1rem;
+            }
+            .ig-input.has-icon-left  { padding-left:  2.5rem; }
+            .ig-input.has-icon-right { padding-right: 2.5rem; }
             .gradient-instagram {
                 background: linear-gradient(135deg, #833AB4 0%, #C13584 25%, #E1306C 50%, #F77737 75%, #FCAF45 100%);
-                background-size: 200% 200%;
-                animation: gradientShift 3s ease infinite;
             }
-            
-            @keyframes gradientShift {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
+
+            /* Scrollbar (subtle) */
+            *::-webkit-scrollbar { width: 10px; height: 10px; }
+            *::-webkit-scrollbar-thumb {
+                background: rgba(15,15,25,0.18);
+                border-radius: 8px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
             }
-            
-            /* Floating animation */
-            @keyframes float {
-                0%, 100% { transform: translateY(0px) rotate(6deg); }
-                50% { transform: translateY(-10px) rotate(6deg); }
+            *::-webkit-scrollbar-thumb:hover { background: rgba(15,15,25,0.32); background-clip: padding-box; }
+            .dark *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); background-clip: padding-box; }
+
+            /* Focus ring */
+            :focus-visible { outline: 2px solid #E1306C; outline-offset: 2px; border-radius: 6px; }
+
+            /* Reveal-on-load animation */
+            @keyframes reveal {
+                from { opacity: 0; transform: translateY(8px); }
+                to   { opacity: 1; transform: translateY(0); }
             }
-            
-            .phone-mockup {
-                animation: float 3s ease-in-out infinite;
-            }
+            .reveal { animation: reveal .6s cubic-bezier(.2,.7,.2,1) both; }
+            .reveal-1 { animation-delay: .05s; }
+            .reveal-2 { animation-delay: .12s; }
+            .reveal-3 { animation-delay: .19s; }
+            .reveal-4 { animation-delay: .26s; }
+
+            [x-cloak] { display: none !important; }
         }
     </style>
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- Alpine.js for interactions (collapse plugin MUST load before core) -->
+
+    <!-- Alpine.js (collapse plugin must load before core) -->
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
-    <!-- SweetAlert2 for notifications -->
+
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-ig-light-secondary dark:bg-ig-dark text-ig-text dark:text-white min-h-screen"
-        x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
-        x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
-        :class="{ 'dark': darkMode }">
-    
+<body class="bg-ig-bg dark:bg-ig-dark text-ig-text dark:text-ig-light min-h-screen antialiased font-sans"
+      x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
+      x-init="$watch('darkMode', val => {
+                localStorage.setItem('darkMode', val);
+                document.documentElement.classList.toggle('dark', val);
+              })">
+
+    <!-- Atmospheric mesh background, pinned behind everything -->
+    <div class="atmosphere" aria-hidden="true">
+        <span class="mesh-c"></span>
+        <span class="grain"></span>
+    </div>
+
     <!-- Navigation -->
     {% if session.get('username') %}
-    <nav class="bg-white dark:bg-ig-dark-secondary border-b border-ig-border dark:border-gray-800 sticky top-0 z-50">
+    <nav class="glass-nav sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3">
-                    <div class="ig-gradient p-2 rounded-lg">
-                        <i class="fab fa-instagram text-white text-2xl"></i>
-                    </div>
-                    <span class="font-bold text-xl hidden sm:block">Content Manager</span>
+                <!-- Wordmark -->
+                <a href="{{ url_for('dashboard') }}" class="flex items-center gap-3 group">
+                    <span class="ig-gradient w-9 h-9 rounded-xl flex items-center justify-center shadow-glass-sm group-hover:scale-105 transition-transform">
+                        <i class="fab fa-instagram text-white text-lg"></i>
+                    </span>
+                    <span class="font-display font-bold text-xl tracking-tight hidden sm:block">
+                        Insta<span class="ig-gradient-text">laz</span>
+                    </span>
                 </a>
-                
-                <!-- Navigation Links -->
-                <div class="flex items-center space-x-6">
-                    <a href="{{ url_for('dashboard') }}" class="hover:text-ig-link">
-                        <i class="fas fa-home text-xl"></i>
+
+                <!-- Center icon nav (Instagram-style) -->
+                <div class="hidden md:flex items-center gap-1">
+                    {% set nav_active = request.endpoint %}
+                    <a href="{{ url_for('dashboard') }}"
+                       class="nav-icon {% if nav_active == 'dashboard' %}is-active{% endif %}" title="Akış">
+                        <i class="fas fa-house"></i>
                     </a>
-                    <a href="{{ url_for('upload') }}" class="hover:text-ig-link" title="Yükle">
-                        <i class="fas fa-plus-square text-xl"></i>
+                    <a href="{{ url_for('upload') }}"
+                       class="nav-icon {% if nav_active == 'upload' %}is-active{% endif %}" title="Yeni içerik">
+                        <i class="far fa-square-plus"></i>
                     </a>
-                    <a href="{{ url_for('messages_page') }}" class="hover:text-ig-link relative" title="Mesajlar">
-                        <i class="fas fa-paper-plane text-xl"></i>
-                        <span class="absolute -top-2 -right-2 bg-ig-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-                              x-show="$store.dm.unread > 0" x-text="$store.dm.unread"></span>
+                    <a href="{{ url_for('messages_page') }}"
+                       class="nav-icon relative {% if nav_active == 'messages_page' %}is-active{% endif %}" title="Mesajlar">
+                        <i class="far fa-paper-plane"></i>
+                        <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-ig-secondary text-white text-[10px] font-semibold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-ig-dark"
+                              x-show="$store.dm.unread > 0" x-text="$store.dm.unread" x-cloak></span>
                     </a>
-                    <a href="{{ url_for('queue_page') }}" class="hover:text-ig-link relative" title="Kuyruk">
-                        <i class="fas fa-clock text-xl"></i>
-                        <span class="absolute -top-2 -right-2 bg-ig-error text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-                              x-show="$store.queue.count > 0" x-text="$store.queue.count"></span>
+                    <a href="{{ url_for('queue_page') }}"
+                       class="nav-icon relative {% if nav_active == 'queue_page' %}is-active{% endif %}" title="Kuyruk">
+                        <i class="far fa-clock"></i>
+                        <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-ig-link text-white text-[10px] font-semibold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-ig-dark"
+                              x-show="$store.queue.count > 0" x-text="$store.queue.count" x-cloak></span>
                     </a>
-                    
-                    <!-- Dark Mode Toggle -->
-                    <button @click="darkMode = !darkMode" class="hover:text-ig-link">
+                </div>
+
+                <!-- Right cluster -->
+                <div class="flex items-center gap-2">
+                    <button @click="darkMode = !darkMode"
+                            class="nav-icon" :title="darkMode ? 'Aydınlık tema' : 'Karanlık tema'">
                         <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
                     </button>
-                    
-                    <!-- User Menu -->
+
+                    <!-- User menu -->
                     <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center space-x-2 hover:opacity-80">
-                            <div class="w-8 h-8 rounded-full ig-gradient"></div>
-                            <span class="hidden sm:block font-medium">{{ session.username }}</span>
-                            <i class="fas fa-chevron-down text-xs"></i>
+                        <button @click="open = !open"
+                                class="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                            <span class="story-ring">
+                                <span class="block w-8 h-8 rounded-full bg-ig-bg dark:bg-ig-dark overflow-hidden">
+                                    {% if session.get('user_data') and session['user_data'].get('profile_pic_url') %}
+                                    <img src="{{ session['user_data']['profile_pic_url'] }}" alt=""
+                                         class="w-full h-full object-cover"
+                                         onerror="this.src='/static/default-avatar.png'">
+                                    {% else %}
+                                    <span class="w-full h-full ig-gradient block"></span>
+                                    {% endif %}
+                                </span>
+                            </span>
+                            <span class="hidden sm:block font-medium text-sm">{{ session.username }}</span>
+                            <i class="fas fa-chevron-down text-[10px] opacity-60"></i>
                         </button>
-                        
-                        <div x-show="open" @click.away="open = false" x-transition
-                             class="absolute right-0 mt-2 w-48 bg-white dark:bg-ig-dark-secondary rounded-lg shadow-lg border border-ig-border dark:border-gray-700">
-                            <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-t-lg">
-                                <i class="fas fa-user-circle mr-2"></i> Profil
+
+                        <div x-show="open" @click.away="open = false" x-cloak x-transition.origin.top.right
+                             class="glass-strong absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden p-1">
+                            <div class="px-3 py-2.5 border-b border-black/5 dark:border-white/10">
+                                <div class="text-xs text-ig-text-secondary">Giriş yapan</div>
+                                <div class="font-semibold text-sm truncate">@{{ session.username }}</div>
+                            </div>
+                            <a href="{{ url_for('dashboard') }}"
+                               class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-black/5 dark:hover:bg-white/5">
+                                <i class="far fa-id-badge w-4 text-center text-ig-text-secondary"></i>
+                                Profil özeti
                             </a>
-                            <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
-                                <i class="fas fa-cog mr-2"></i> Ayarlar
+                            <a href="{{ url_for('queue_page') }}"
+                               class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-black/5 dark:hover:bg-white/5">
+                                <i class="far fa-clock w-4 text-center text-ig-text-secondary"></i>
+                                Yükleme kuyruğu
                             </a>
-                            <hr class="border-ig-border dark:border-gray-700">
-                            <button onclick="logout()" class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-b-lg text-ig-error">
-                                <i class="fas fa-sign-out-alt mr-2"></i> Çıkış Yap
+                            <button @click="darkMode = !darkMode; open=false"
+                                    class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-black/5 dark:hover:bg-white/5">
+                                <i class="fas w-4 text-center text-ig-text-secondary"
+                                   :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
+                                Tema değiştir
+                            </button>
+                            <div class="glass-divider my-1"></div>
+                            <button onclick="logout()"
+                                    class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-ig-error hover:bg-red-500/10">
+                                <i class="fas fa-arrow-right-from-bracket w-4 text-center"></i>
+                                Çıkış yap
                             </button>
                         </div>
                     </div>
@@ -243,121 +473,151 @@
             </div>
         </div>
     </nav>
+
+    <!-- Mobile bottom nav (Instagram-style) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 glass-nav z-50">
+        {% set nav_active = request.endpoint %}
+        <div class="grid grid-cols-4 max-w-md mx-auto">
+            <a href="{{ url_for('dashboard') }}" class="nav-mobile {% if nav_active == 'dashboard' %}is-active{% endif %}">
+                <i class="fas fa-house"></i><span>Akış</span>
+            </a>
+            <a href="{{ url_for('upload') }}" class="nav-mobile {% if nav_active == 'upload' %}is-active{% endif %}">
+                <i class="far fa-square-plus"></i><span>Yükle</span>
+            </a>
+            <a href="{{ url_for('messages_page') }}" class="nav-mobile relative {% if nav_active == 'messages_page' %}is-active{% endif %}">
+                <i class="far fa-paper-plane"></i><span>Mesajlar</span>
+                <span class="absolute top-1 right-6 min-w-[16px] h-[16px] px-1 bg-ig-secondary text-white text-[10px] font-semibold rounded-full flex items-center justify-center"
+                      x-show="$store.dm.unread > 0" x-text="$store.dm.unread" x-cloak></span>
+            </a>
+            <a href="{{ url_for('queue_page') }}" class="nav-mobile relative {% if nav_active == 'queue_page' %}is-active{% endif %}">
+                <i class="far fa-clock"></i><span>Kuyruk</span>
+                <span class="absolute top-1 right-6 min-w-[16px] h-[16px] px-1 bg-ig-link text-white text-[10px] font-semibold rounded-full flex items-center justify-center"
+                      x-show="$store.queue.count > 0" x-text="$store.queue.count" x-cloak></span>
+            </a>
+        </div>
+    </nav>
+    <style>
+        .nav-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 2.5rem; height: 2.5rem; border-radius: 0.875rem;
+            color: #1A1A22;
+            transition: background .15s, color .15s, transform .12s;
+        }
+        .nav-icon:hover { background: rgba(15,15,25,0.06); }
+        .nav-icon.is-active {
+            color: #E1306C;
+            background: linear-gradient(135deg, rgba(193,53,132,.10), rgba(247,119,55,.10));
+        }
+        .dark .nav-icon { color: #FAFAF7; }
+        .dark .nav-icon:hover { background: rgba(255,255,255,0.08); }
+
+        .nav-mobile {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 2px; padding: 8px 0 10px;
+            font-size: 10px; font-weight: 600; color: #7A7A85;
+            position: relative;
+        }
+        .nav-mobile i { font-size: 18px; }
+        .nav-mobile.is-active { color: #E1306C; }
+    </style>
     {% endif %}
-    
+
     <!-- Main Content -->
-    <main class="{% if session.get('username') %}pt-8{% endif %}">
+    <main class="{% if session.get('username') %}pt-6 pb-24 md:pb-10{% endif %}">
         {% block content %}{% endblock %}
     </main>
-    
-    <!-- Footer -->
+
+    <!-- Footer (only when logged in) -->
     {% if session.get('username') %}
-    <footer class="mt-16 py-8 border-t border-ig-border dark:border-gray-800">
-        <div class="max-w-6xl mx-auto px-4 text-center text-ig-text-secondary text-sm">
-            <p>&copy; 2024 Instalaz. Instagram Content Management Platform - Professional Instagram Management Solution</p>
-        </div>
+    <footer class="hidden md:block max-w-6xl mx-auto px-4 py-8 text-center text-xs text-ig-text-secondary">
+        <span class="font-display tracking-tight">Insta<span class="ig-gradient-text">laz</span></span>
+        &nbsp;·&nbsp; Instagram içerik ve mesaj stüdyosu &nbsp;·&nbsp;
+        <span class="opacity-60">© 2026</span>
     </footer>
     {% endif %}
-    
+
     <!-- Global Scripts -->
     <script>
-        // Alpine.js store for global state
-            document.addEventListener('alpine:init', () => {
-                Alpine.store('queue', {
-                    count: 0,
-                    updateCount() {
-                        // Update queue count from server
-                        fetch('/api/queue/count')
-                            .then(r => r.json())
-                            .then(data => this.count = data.count)
-                            .catch(() => {});
-                    }
-                });
-
-                Alpine.store('dm', {
-                    unread: 0,
-                    updateUnread() {
-                        fetch('/api/dm/threads?amount=20')
-                            .then(r => r.ok ? r.json() : null)
-                            .then(data => {
-                                if (!data || !data.success) return;
-                                this.unread = (data.threads || []).filter(t => t.unread).length
-                                            + (data.pending || []).length;
-                            })
-                            .catch(() => {});
-                    }
-                });
-
-                // Check queue every 3 seconds for real-time updates
-                setInterval(() => Alpine.store('queue').updateCount(), 3000);
-                Alpine.store('queue').updateCount();
-                // DM unread sayısı 30 saniyede bir yenilensin (rate-limit dostu)
-                setInterval(() => Alpine.store('dm').updateUnread(), 30000);
-                Alpine.store('dm').updateUnread();
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('queue', {
+                count: 0,
+                updateCount() {
+                    fetch('/api/queue/count')
+                        .then(r => r.ok ? r.json() : null)
+                        .then(d => { if (d) this.count = d.count || 0; })
+                        .catch(() => {});
+                }
             });
-        
-        // Global functions
+            Alpine.store('dm', {
+                unread: 0,
+                updateUnread() {
+                    fetch('/api/dm/threads?amount=20')
+                        .then(r => r.ok ? r.json() : null)
+                        .then(d => {
+                            if (!d || !d.success) return;
+                            this.unread = (d.threads || []).filter(t => t.unread).length
+                                        + (d.pending || []).length;
+                        })
+                        .catch(() => {});
+                }
+            });
+            setInterval(() => Alpine.store('queue').updateCount(), 3000);
+            Alpine.store('queue').updateCount();
+            setInterval(() => Alpine.store('dm').updateUnread(), 30000);
+            Alpine.store('dm').updateUnread();
+        });
+
         async function logout() {
             const result = await Swal.fire({
                 title: 'Çıkış yapmak istediğinize emin misiniz?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Evet, çıkış yap',
-                cancelButtonText: 'İptal',
-                confirmButtonColor: '#ED4956'
+                cancelButtonText: 'Vazgeç',
+                confirmButtonColor: '#ED4956',
+                background: getComputedStyle(document.body).backgroundColor,
+                color: getComputedStyle(document.body).color,
             });
-            
             if (result.isConfirmed) {
                 try {
                     const response = await fetch('/api/logout', { method: 'POST' });
                     const data = await response.json();
-                    if (data.success) {
-                        window.location.href = data.redirect;
-                    }
-
+                    if (data.success) window.location.href = data.redirect;
                 } catch (error) {
                     Swal.fire('Hata', 'Çıkış yapılırken bir hata oluştu', 'error');
                 }
             }
         }
-        
-        // Toast notification helper
+
         function showToast(message, type = 'info') {
             const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
+                toast: true, position: 'top-end',
+                showConfirmButton: false, timer: 3000, timerProgressBar: true,
+                background: getComputedStyle(document.body).backgroundColor,
+                color: getComputedStyle(document.body).color,
                 didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
                 }
             });
-            
-            Toast.fire({
-                icon: type,
-                title: message
-            });
+            Toast.fire({ icon: type, title: message });
         }
-        
-        // Format file size
+
         function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
+            if (bytes === 0) return '0 B';
             const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
-        
-        // Format duration
+
         function formatDuration(seconds) {
             const mins = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
     </script>
-    
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

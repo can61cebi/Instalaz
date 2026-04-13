@@ -1,312 +1,224 @@
 {% extends "base.html" %}
 
-{% block title %}Instalaz - Instagram Content Management Platform{% endblock %}
+{% block title %}Instalaz — Instagram için içerik & mesaj stüdyosu{% endblock %}
+
+{% block extra_head %}
+<style>
+    .phone-frame {
+        background: linear-gradient(150deg, rgba(255,255,255,0.55), rgba(255,255,255,0.15));
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        border: 1px solid rgba(255,255,255,0.5);
+        box-shadow: 0 30px 80px -20px rgba(60,30,90,0.45), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .dark .phone-frame {
+        background: linear-gradient(150deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+        border-color: rgba(255,255,255,0.10);
+        box-shadow: 0 30px 80px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .float { animation: floatY 6s ease-in-out infinite alternate; }
+    @keyframes floatY {
+        from { transform: translateY(0) rotate(4deg); }
+        to   { transform: translateY(-14px) rotate(2deg); }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="relative bg-gradient-to-br from-ig-purple via-ig-secondary to-ig-primary text-white">
-    <div class="absolute inset-0 bg-black opacity-10"></div>
-    <div class="relative max-w-6xl mx-auto px-4 py-12 md:py-20">
+<!-- ====== HERO ====== -->
+<section class="relative overflow-hidden">
+    <div class="max-w-6xl mx-auto px-4 pt-16 pb-20 md:pt-24 md:pb-28">
         <div class="grid md:grid-cols-2 gap-12 items-center">
-            <!-- Sol Taraf - Metin -->
-            <div class="text-center md:text-left">
-                <h1 class="text-3xl md:text-4xl font-bold mb-4 leading-tight">
-                    <span class="block text-transparent bg-clip-text bg-gradient-to-r from-ig-yellow to-ig-accent">
-                        Instalaz
-                    </span>
-                    Instagram İçerik Yönetim Platformu
+            <!-- Copy column -->
+            <div class="reveal reveal-1">
+                <span class="pill pill-grad mb-5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-ig-secondary animate-pulse"></span>
+                    instagrapi 2.3 üzerine kurulu
+                </span>
+                <h1 class="font-display font-bold leading-[0.95] tracking-tight text-5xl md:text-6xl lg:text-7xl mb-5">
+                    İçeriğin <br>
+                    <span class="ig-gradient-text">Instagram'a uygun</span><br>
+                    şekilde aksın.
                 </h1>
-                <p class="text-base md:text-lg mb-6 text-gray-100">
-                    4K kalitesinde fotoğraf ve videolarınızı kolayca Instagram'a yükleyin. 
-                    Story, Reel ve Post içeriklerinizi profesyonel bir platformla yönetin.
+                <p class="text-lg text-ig-text-secondary max-w-lg mb-8 leading-relaxed">
+                    4K video ve fotoğraflarını <strong>Story</strong>, <strong>Reel</strong>, <strong>Post</strong> formatlarına otomatik dönüştür.
+                    Mesajlarını aynı arayüzden yönet — tek pencerede bütün stüdyo.
                 </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                    <a href="{{ url_for('login_page') }}"
-                       class="bg-white text-ig-primary px-8 py-3 rounded-full font-semibold hover:scale-105 transition-transform">
-                        Hemen Başla
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="{{ url_for('login_page') }}" class="btn btn-primary !px-6 !py-3 !text-base">
+                        <i class="fas fa-arrow-right"></i> Hemen başla
                     </a>
-                    <a href="#features" 
-                       class="border-2 border-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-ig-primary transition-all">
-                        Özellikler
+                    <a href="#features" class="btn btn-ghost !px-6 !py-3 !text-base">
+                        Özellikleri gör
                     </a>
                 </div>
             </div>
-            
-            <!-- Sağ Taraf - Görsel -->
-            <div class="relative">
-                <div class="relative z-10">
-                    <!-- Mock Phone -->
-                    <div class="phone-mockup bg-ig-dark rounded-3xl p-3 shadow-2xl transform rotate-6 hover:rotate-0 transition-transform duration-500 max-w-sm mx-auto">
-                        <div class="bg-ig-white rounded-2xl p-2 aspect-[9/16]">
-                            <!-- Status Bar -->
-                            <div class="flex justify-between items-center px-4 py-2 text-ig-dark text-xs">
-                                <span>9:41</span>
-                                <div class="flex gap-1">
-                                    <i class="fas fa-signal"></i>
-                                    <i class="fas fa-wifi"></i>
-                                    <i class="fas fa-battery-full"></i>
-                                </div>
+
+            <!-- Phone mockup column -->
+            <div class="relative reveal reveal-2 hidden md:block">
+                <div class="phone-frame float rounded-[2.2rem] p-3 max-w-[300px] mx-auto">
+                    <div class="bg-ig-bg dark:bg-ig-dark rounded-[1.7rem] aspect-[9/19] overflow-hidden">
+                        <!-- Top bar -->
+                        <div class="flex justify-between items-center px-4 pt-3 pb-2 text-xs">
+                            <span class="font-semibold">9:41</span>
+                            <div class="flex gap-1.5"><i class="fas fa-signal"></i><i class="fas fa-wifi"></i><i class="fas fa-battery-three-quarters"></i></div>
+                        </div>
+                        <!-- Wordmark -->
+                        <div class="flex items-center justify-between px-4 py-2 border-b border-black/5 dark:border-white/5">
+                            <span class="font-display font-bold text-xl tracking-tight">
+                                Insta<span class="ig-gradient-text">laz</span>
+                            </span>
+                            <i class="far fa-paper-plane"></i>
+                        </div>
+                        <!-- Stories -->
+                        <div class="flex gap-3 px-3 py-3 overflow-x-auto">
+                            <div class="flex flex-col items-center shrink-0">
+                                <span class="story-ring p-[2px]">
+                                    <span class="w-12 h-12 rounded-full bg-ig-bg dark:bg-ig-dark flex items-center justify-center">
+                                        <i class="fas fa-plus text-ig-secondary text-sm"></i>
+                                    </span>
+                                </span>
+                                <span class="text-[10px] mt-1">Senin</span>
                             </div>
-                            
-                            <!-- Instagram Header -->
-                            <div class="flex items-center justify-between px-4 py-2 border-b border-ig-light-gray">
-                                <div class="flex items-center gap-2">
-                                    <i class="fab fa-instagram text-2xl text-ig-dark"></i>
-                                    <span class="font-semibold text-ig-dark">Instagram</span>
-                                </div>
-                                <div class="flex gap-4 text-ig-dark">
+                            {% for i in range(4) %}
+                            <div class="flex flex-col items-center shrink-0">
+                                <span class="story-ring p-[2px]">
+                                    <span class="w-12 h-12 rounded-full overflow-hidden">
+                                        <span class="block w-full h-full ig-gradient"
+                                              style="background-position: {{ i * 25 }}% 50%; background-size: 200% 100%;"></span>
+                                    </span>
+                                </span>
+                                <span class="text-[10px] mt-1">user{{ i + 1 }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <!-- Post -->
+                        <div class="border-t border-black/5 dark:border-white/5">
+                            <div class="px-3 py-2 flex items-center gap-2">
+                                <span class="story-ring p-[1.5px]">
+                                    <span class="block w-6 h-6 rounded-full ig-gradient"></span>
+                                </span>
+                                <span class="font-semibold text-xs">instalaz_studio</span>
+                            </div>
+                            <div class="aspect-square ig-gradient relative">
+                                <span class="absolute bottom-3 left-3 right-3 text-white text-xs font-medium">
+                                    "Yeni içerik kuyruğa eklendi."
+                                </span>
+                            </div>
+                            <div class="flex justify-between px-3 py-2.5 text-lg">
+                                <div class="flex gap-3">
                                     <i class="far fa-heart"></i>
+                                    <i class="far fa-comment"></i>
                                     <i class="far fa-paper-plane"></i>
                                 </div>
+                                <i class="far fa-bookmark"></i>
                             </div>
-                            
-                            <!-- Stories -->
-                            <div class="flex gap-2 p-3 overflow-x-auto">
-                                <div class="flex flex-col items-center">
-                                    <div class="story-ring p-1">
-                                        <div class="w-12 h-12 rounded-full bg-ig-bg flex items-center justify-center">
-                                            <i class="fas fa-plus text-ig-primary text-sm"></i>
-                                        </div>
-                                    </div>
-                                    <span class="text-xs mt-1 text-ig-dark">Hikaye</span>
-                                </div>
-                                {% for i in range(3) %}
-                                <div class="flex flex-col items-center">
-                                    <div class="story-ring">
-                                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400"></div>
-                                    </div>
-                                    <span class="text-xs mt-1 text-gray-700">User{{ i + 1 }}</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            
-                            <!-- Post -->
-                            <div class="border-t border-ig-light-gray">
-                                <div class="p-3">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-ig-secondary to-ig-primary"></div>
-                                        <span class="font-semibold text-ig-dark text-sm">konakonuanlik</span>
-                                    </div>
-                                    <div class="bg-gradient-to-br from-ig-purple to-ig-accent h-48 rounded-lg mb-2"></div>
-                                    <div class="flex gap-3 text-ig-dark mb-2">
-                                        <i class="far fa-heart text-lg"></i>
-                                        <i class="far fa-comment text-lg"></i>
-                                        <i class="far fa-paper-plane text-lg"></i>
-                                    </div>
-                                    <p class="text-xs text-gray-700">
-                                        <span class="font-semibold">1,234 beğenme</span>
-                                    </p>
-                                </div>
-                            </div>
+                            <div class="px-3 pb-2 text-[11px]"><span class="font-semibold">1.234</span> beğenme</div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Decorative Elements -->
-                <div class="absolute -top-4 -right-4 w-24 h-24 bg-ig-yellow rounded-full opacity-50 blur-xl animate-pulse"></div>
-                <div class="absolute -bottom-8 -left-8 w-32 h-32 bg-ig-accent rounded-full opacity-50 blur-xl animate-bounce"></div>
-                <div class="absolute top-1/2 -left-12 w-16 h-16 bg-ig-secondary rounded-full opacity-30 blur-lg animate-ping"></div>
+                <!-- Floating accent badges -->
+                <div class="absolute -top-6 -left-4 card-strong rounded-2xl p-3 hidden lg:block">
+                    <div class="text-[10px] uppercase tracking-wider text-ig-text-secondary">Bugün</div>
+                    <div class="font-display font-bold text-2xl">12 <span class="text-sm font-normal text-ig-text-secondary">yükleme</span></div>
+                </div>
+                <div class="absolute -bottom-4 -right-4 card-strong rounded-2xl px-4 py-3 hidden lg:flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-ig-success animate-pulse"></span>
+                    <span class="text-xs font-medium">Mesaj kutusu açık</span>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Features Section -->
-<section id="features" class="py-20">
+<!-- ====== FEATURES ====== -->
+<section id="features" class="relative py-20">
     <div class="max-w-6xl mx-auto px-4">
-        <div class="text-center mb-16">
-            <h2 class="text-3xl md:text-4xl font-bold text-ig-dark mb-4">
-                Güçlü Özellikler
-            </h2>
-            <p class="text-lg text-ig-gray max-w-2xl mx-auto">
-                Instagram içerik yönetimi için ihtiyacınız olan tüm araçlar
+        <div class="text-center mb-12 reveal">
+            <span class="pill pill-grad mb-3">Yetenekler</span>
+            <h2 class="font-display font-bold text-4xl md:text-5xl tracking-tight">Tek pencerede stüdyo</h2>
+            <p class="text-ig-text-secondary mt-3 max-w-xl mx-auto">
+                Yükleme, optimizasyon, kuyruk ve mesajlaşma — Instalaz hepsini tek sekmede tutar.
             </p>
         </div>
-        
-        <div class="grid md:grid-cols-3 gap-8">
-            <!-- Feature 1 -->
-            <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-                <div class="gradient-instagram w-16 h-16 rounded-xl flex items-center justify-center mb-6">
-                    <i class="fas fa-image text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">4K Kalite Desteği</h3>
-                <p class="text-ig-gray">
-                    4K fotoğraf ve 60fps videolarınızı otomatik olarak Instagram formatına optimize eder
-                </p>
-            </div>
-            
-            <!-- Feature 2 -->
-            <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-                <div class="gradient-instagram w-16 h-16 rounded-xl flex items-center justify-center mb-6">
-                    <i class="fas fa-magic text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">Otomatik İşleme</h3>
-                <p class="text-ig-gray">
-                    Story, Reel ve Post için içeriklerinizi otomatik olarak boyutlandırır ve optimize eder
-                </p>
-            </div>
-            
-            <!-- Feature 3 -->
-            <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-                <div class="gradient-instagram w-16 h-16 rounded-xl flex items-center justify-center mb-6">
-                    <i class="fas fa-clock text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">Toplu Yükleme</h3>
-                <p class="text-ig-gray">
-                    Birden fazla içeriği aynı anda yükleyin ve kuyruklama sistemiyle yönetin
-                </p>
-            </div>
-            
-            <!-- Feature 4 -->
-            <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-                <div class="gradient-instagram w-16 h-16 rounded-xl flex items-center justify-center mb-6">
-                    <i class="fas fa-chart-line text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">İstatistikler</h3>
-                <p class="text-ig-gray">
-                    Takipçi sayınızı, etkileşimlerinizi ve gönderi performansınızı takip edin
-                </p>
-            </div>
-            
-            <!-- Feature 5 -->
-            <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-                <div class="gradient-instagram w-16 h-16 rounded-xl flex items-center justify-center mb-6">
-                    <i class="fas fa-shield-alt text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">Güvenli Giriş</h3>
-                <p class="text-ig-gray">
-                    2FA desteği ve şifreli oturum yönetimi ile hesabınız güvende
-                </p>
-            </div>
-            
-            <!-- Feature 6 -->
-            <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-                <div class="gradient-instagram w-16 h-16 rounded-xl flex items-center justify-center mb-6">
-                    <i class="fas fa-palette text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">Watermark</h3>
-                <p class="text-ig-gray">
-                    İçeriklerinize otomatik watermark ekleyin ve telif haklarınızı koruyun
-                </p>
-            </div>
+
+        <div class="grid md:grid-cols-3 gap-4">
+            {% set features = [
+                ('fa-film', '4K video kodlama', 'FFmpeg ile 10 Mbps, CRF 23, H.264. MoviePy fallback otomatik devreye girer.'),
+                ('fa-crop-simple', 'Akıllı kırpma', 'Story/Reel için 9:16, Post için 1:1\'e EXIF orientation\'ı koruyarak otomatik dönüşür.'),
+                ('fa-layer-group', 'Kuyruk + insan-zamanı', 'Yüklemeler arasına 3-15 dakika rastgele aralık koyar — feedback flag riskini azaltır.'),
+                ('fa-paper-plane', 'Direct Messages', 'Inbox, istekler, polling, foto/video gönderme ve yeni sohbet — Instagram klonu DM arayüzü.'),
+                ('fa-shield-halved', 'Oturum & 2FA', 'instagrapi session\'ı kalıcı saklanır, iki-faktörlü doğrulama desteklenir.'),
+                ('fa-bolt', 'Redis veya bellek', 'REDIS_URL varsa kullanılır, yoksa otomatik in-memory fallback.'),
+            ] %}
+            {% for icon, title, desc in features %}
+            <article class="card p-6 reveal hover:-translate-y-1 transition-transform">
+                <span class="w-12 h-12 rounded-2xl ig-gradient flex items-center justify-center mb-4 shadow-glass-sm">
+                    <i class="fas {{ icon }} text-white"></i>
+                </span>
+                <h3 class="font-display font-semibold text-lg mb-1">{{ title }}</h3>
+                <p class="text-sm text-ig-text-secondary leading-relaxed">{{ desc }}</p>
+            </article>
+            {% endfor %}
         </div>
     </div>
 </section>
 
-<!-- How It Works -->
-<section class="py-20 bg-ig-white">
-    <div class="max-w-6xl mx-auto px-4">
-        <div class="text-center mb-16">
-            <h2 class="text-3xl md:text-4xl font-bold text-ig-dark mb-4">
-                Nasıl Çalışır?
-            </h2>
-            <p class="text-lg text-ig-gray max-w-2xl mx-auto">
-                3 basit adımda Instagram içeriklerinizi yükleyin
-            </p>
-        </div>
-        
-        <div class="grid md:grid-cols-3 gap-8">
-            <!-- Step 1 -->
-            <div class="text-center">
-                <div class="relative mb-8">
-                    <div class="gradient-instagram w-20 h-20 rounded-full flex items-center justify-center mx-auto text-white text-2xl font-bold">
-                        1
-                    </div>
-                    <div class="hidden md:block absolute top-10 left-full w-full h-0.5 bg-gradient-to-r from-ig-primary to-ig-secondary"></div>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">Giriş Yapın</h3>
-                <p class="text-ig-gray">
-                    Instagram hesabınızla güvenli bir şekilde giriş yapın
-                </p>
-            </div>
-            
-            <!-- Step 2 -->
-            <div class="text-center">
-                <div class="relative mb-8">
-                    <div class="gradient-instagram w-20 h-20 rounded-full flex items-center justify-center mx-auto text-white text-2xl font-bold">
-                        2
-                    </div>
-                    <div class="hidden md:block absolute top-10 left-full w-full h-0.5 bg-gradient-to-r from-ig-secondary to-ig-accent"></div>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">İçerik Seçin</h3>
-                <p class="text-ig-gray">
-                    4K fotoğraf veya videolarınızı seçin ve yükleme tipini belirleyin
-                </p>
-            </div>
-            
-            <!-- Step 3 -->
-            <div class="text-center">
-                <div class="mb-8">
-                    <div class="gradient-instagram w-20 h-20 rounded-full flex items-center justify-center mx-auto text-white text-2xl font-bold">
-                        3
-                    </div>
-                </div>
-                <h3 class="text-xl font-semibold text-ig-dark mb-3">Yükleyin</h3>
-                <p class="text-ig-gray">
-                    İçeriğiniz otomatik olarak optimize edilip Instagram'a yüklenir
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- CTA Section -->
+<!-- ====== HOW IT WORKS ====== -->
 <section class="py-20">
-    <div class="max-w-4xl mx-auto px-4 text-center">
-        <div class="bg-gradient-to-br from-ig-purple via-ig-secondary to-ig-primary rounded-3xl p-12 text-white">
-            <h2 class="text-3xl md:text-4xl font-bold mb-6">
-                Hemen Başlayın
-            </h2>
-            <p class="text-lg mb-8 text-gray-100">
-                Instagram içeriklerinizi profesyonelce yönetmeye başlayın
+    <div class="max-w-5xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="font-display font-bold text-4xl md:text-5xl tracking-tight">Üç adım, hepsi bu</h2>
+        </div>
+        <div class="grid md:grid-cols-3 gap-4">
+            {% set steps = [
+                ('01', 'Giriş', 'Instagram kullanıcı adın ve şifrenle giriş yap. 2FA istenirse kodu gir.'),
+                ('02', 'İçerik seç', 'Story/Reel/Post tipini belirle, dosyayı sürükle bırak. 4K otomatik tespit edilir.'),
+                ('03', 'Kuyruğa bırak', 'Açıklamayı yaz, gönder. Optimize edilen içerik insan tempolu kuyrukla yüklenir.'),
+            ] %}
+            {% for n, title, desc in steps %}
+            <div class="card p-6">
+                <div class="font-display font-bold text-5xl ig-gradient-text mb-3">{{ n }}</div>
+                <h3 class="font-display font-semibold text-xl mb-1">{{ title }}</h3>
+                <p class="text-sm text-ig-text-secondary leading-relaxed">{{ desc }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- ====== CTA ====== -->
+<section class="py-20">
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="card-strong rounded-3xl p-10 md:p-14 text-center">
+            <h2 class="font-display font-bold text-3xl md:text-5xl tracking-tight mb-4">Stüdyonu aç.</h2>
+            <p class="text-ig-text-secondary mb-7 max-w-xl mx-auto">
+                Tek bir hesap için yeterli, kişisel kullanım için tasarlandı. Instagram oturumun yerel olarak şifrelenmiş tutulur.
             </p>
-            <a href="{{ url_for('login_page') }}"
-               class="inline-block bg-white text-ig-primary px-8 py-3 rounded-full font-semibold hover:scale-105 transition-transform">
-                Ücretsiz Deneyin
+            <a href="{{ url_for('login_page') }}" class="btn btn-primary !px-7 !py-3.5 !text-base">
+                <i class="fab fa-instagram"></i> Instagram ile giriş yap
             </a>
         </div>
     </div>
 </section>
+
+<!-- Public footer (logged-out) -->
+<footer class="py-10 text-center text-xs text-ig-text-secondary">
+    <span class="font-display tracking-tight">Insta<span class="ig-gradient-text">laz</span></span>
+    &nbsp;·&nbsp; <a href="https://github.com/can61cebi/Instalaz" class="hover:underline" target="_blank" rel="noopener">GitHub</a>
+    &nbsp;·&nbsp; MIT License
+</footer>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // Smooth scroll
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
+    // Smooth scroll for in-page anchors
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            const target = document.querySelector(a.getAttribute('href'));
+            if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
         });
     });
-    
-    // Parallax effect and floating animation for hero section
-    window.addEventListener('scroll', () => {
-        const scrolled = window.pageYOffset;
-        const heroSection = document.querySelector('section:first-child');
-        if (heroSection && scrolled < window.innerHeight) {
-            const parallaxElements = heroSection.querySelectorAll('.absolute');
-            parallaxElements.forEach(element => {
-                if (element.classList.contains('blur-xl')) {
-                    element.style.transform = `translateY(${scrolled * 0.3}px)`;
-                }
-            });
-        }
-    });
-    
-    // Add floating animation to phone mockup
-    const phoneMockup = document.querySelector('.phone-mockup');
-    if (phoneMockup) {
-        let floatDirection = 1;
-        setInterval(() => {
-            phoneMockup.style.transform += ` translateY(${floatDirection * 2}px)`;
-            floatDirection *= -1;
-        }, 2000);
-    }
 </script>
 {% endblock %}

@@ -1,102 +1,102 @@
 {% extends "base.html" %}
 
-{% block title %}Yükleme Kuyruğu{% endblock %}
+{% block title %}Yükleme kuyruğu — Instalaz{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8" x-data="queueManager()">
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-3xl font-bold">Yükleme Kuyruğu</h1>
-        <div class="flex items-center space-x-2">
-            <span class="text-sm text-ig-text-secondary">Otomatik yenileme</span>
-            <div class="relative">
-                <div class="w-8 h-8 border-2 border-ig-primary border-t-transparent rounded-full animate-spin" x-show="loading"></div>
-                <i class="fas fa-sync-alt text-ig-primary cursor-pointer hover:text-ig-link" 
-                   x-show="!loading" 
-                   @click="refreshQueue()"
-                   :class="{'animate-pulse': autoRefresh}"></i>
-            </div>
+<div class="max-w-3xl mx-auto px-4" x-data="queueManager()">
+
+    <div class="flex items-center justify-between mb-5">
+        <div>
+            <h1 class="font-display font-semibold text-3xl">Kuyruk</h1>
+            <p class="text-sm text-ig-text-secondary mt-1">İşlenen ve yüklenen içerikleri canlı izle.</p>
         </div>
+        <button @click="refreshQueue()" class="btn btn-ghost" :disabled="loading" title="Yenile">
+            <i class="fas fa-arrows-rotate" :class="{ 'animate-spin': loading }"></i>
+            <span class="hidden sm:inline">Yenile</span>
+        </button>
     </div>
-    
-    <div class="ig-card">
-        <div class="space-y-4">
+
+    <div class="card p-4">
+        <div class="space-y-2">
             <template x-for="task in tasks" :key="task.id">
-                <div class="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex-1">
-                            <p class="font-medium" x-text="task.filename"></p>
-                            <div class="flex items-center space-x-4 text-sm text-ig-text-secondary mt-1">
-                                <span>Tip: <span class="font-medium uppercase" x-text="task.type"></span></span>
-                                <span>•</span>
-                                <span>
-                                    Durum: 
-                                    <span class="font-semibold" 
-                                          :class="{
-                                              'text-ig-success': task.status === 'completed',
-                                              'text-ig-error': task.status === 'failed', 
-                                              'text-ig-link': task.status === 'processing' || task.status === 'uploading',
-                                              'text-ig-warning': task.status === 'waiting' || task.status === 'cooldown',
-                                              'text-ig-text-secondary': task.status === 'pending'
-                                          }"
-                                          x-text="getStatusText(task)">
-                                    </span>
-                                </span>
+                <div class="card-tight p-4 hover:shadow-glass transition-shadow">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0"
+                              :class="{
+                                'bg-gradient-to-br from-ig-purple to-ig-secondary': task.type === 'story',
+                                'bg-gradient-to-br from-ig-secondary to-ig-accent': task.type === 'reel',
+                                'bg-gradient-to-br from-ig-accent to-ig-yellow': task.type === 'post',
+                              }">
+                            <i class="fas" :class="{
+                                'fa-circle-plus': task.type === 'story',
+                                'fa-film': task.type === 'reel',
+                                'fa-image': task.type === 'post'
+                            }"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate" x-text="task.filename"></p>
+                            <div class="flex items-center gap-2 mt-0.5 text-[11px]">
+                                <span class="pill pill-grad uppercase" x-text="task.type"></span>
+                                <span class="font-semibold"
+                                      :class="{
+                                        'text-ig-success': task.status === 'completed',
+                                        'text-ig-error':   task.status === 'failed',
+                                        'text-ig-link':    task.status === 'processing' || task.status === 'uploading',
+                                        'text-amber-500':  task.status === 'waiting' || task.status === 'cooldown',
+                                        'text-ig-text-secondary': task.status === 'pending'
+                                      }"
+                                      x-text="getStatusText(task)"></span>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <!-- Progress indicator -->
-                            <div x-show="task.status === 'processing' || task.status === 'uploading'" 
-                                 class="w-6 h-6 border-2 border-ig-primary border-t-transparent rounded-full animate-spin"></div>
-                            
-                            <!-- Wait countdown -->
-                            <div x-show="task.status === 'waiting' && task.wait_remaining" 
-                                 class="flex items-center space-x-2 text-ig-warning">
-                                <i class="fas fa-clock"></i>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div x-show="task.status === 'processing' || task.status === 'uploading'"
+                                 class="spinner !w-5 !h-5 !border-2"></div>
+                            <div x-show="task.status === 'waiting' && task.wait_remaining"
+                                 class="flex items-center gap-1 text-amber-500 text-sm">
+                                <i class="far fa-clock"></i>
                                 <span x-text="task.wait_remaining + 's'"></span>
                             </div>
-                            
-                            <!-- Cooldown countdown -->
-                            <div x-show="task.status === 'cooldown' && task.cooldown_remaining" 
-                                 class="flex items-center space-x-2 text-ig-warning">
+                            <div x-show="task.status === 'cooldown' && task.cooldown_remaining"
+                                 class="flex items-center gap-1 text-amber-500 text-sm">
                                 <i class="fas fa-snowflake"></i>
                                 <span x-text="task.cooldown_remaining + 's'"></span>
                             </div>
-                            
-                            <!-- Status icons -->
-                            <i x-show="task.status === 'completed'" class="fas fa-check-circle text-ig-success text-xl"></i>
-                            <i x-show="task.status === 'failed'" class="fas fa-times-circle text-ig-error text-xl"></i>
-                            <i x-show="task.status === 'pending'" class="fas fa-clock text-ig-text-secondary"></i>
+                            <i x-show="task.status === 'completed'" class="fas fa-circle-check text-ig-success text-lg"></i>
+                            <i x-show="task.status === 'failed'" class="fas fa-circle-xmark text-ig-error text-lg"></i>
+                            <i x-show="task.status === 'pending'" class="far fa-clock text-ig-text-secondary"></i>
                         </div>
                     </div>
-                    
-                    <!-- Progress bar for processing -->
-                    <div x-show="task.status === 'waiting' && task.wait_remaining" class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-ig-warning h-2 rounded-full transition-all duration-1000" 
+
+                    <div x-show="task.status === 'waiting' && task.wait_remaining"
+                         class="w-full bg-black/5 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-amber-400 h-full transition-all duration-1000"
                              :style="`width: ${task.wait_remaining ? ((15 - task.wait_remaining) / 15) * 100 : 0}%`"></div>
                     </div>
-                    
-                    <!-- Error message -->
-                    <div x-show="task.status === 'failed' && task.error" 
-                         class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>
+
+                    <div x-show="task.status === 'failed' && task.error"
+                         class="mt-2 p-2 rounded-xl border border-ig-error/30 bg-ig-error/5 text-ig-error text-xs">
+                        <i class="fas fa-triangle-exclamation mr-1"></i>
                         <span x-text="task.error"></span>
                     </div>
-                    
-                    <!-- Success message -->
-                    <div x-show="task.status === 'completed' && task.media_id" 
-                         class="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
+
+                    <div x-show="task.status === 'completed' && task.media_id"
+                         class="mt-2 p-2 rounded-xl border border-ig-success/30 bg-ig-success/5 text-ig-success text-xs">
                         <i class="fas fa-check mr-1"></i>
-                        <span>Instagram'a başarıyla yüklendi</span>
-                        <span class="ml-2 text-xs text-green-600" x-text="'(ID: ' + task.media_id + ')'"></span>
+                        Instagram'a yüklendi
+                        <span class="ml-1 opacity-70 font-mono" x-text="'#' + task.media_id"></span>
                     </div>
                 </div>
             </template>
-            
-            <!-- Empty state -->
-            <div x-show="tasks.length === 0" class="text-center py-12 text-ig-text-secondary">
-                <i class="fas fa-inbox text-4xl mb-3"></i>
-                <p>Yükleme kuyruğu boş.</p>
-                <p class="text-sm mt-2">Dosya yüklemek için <a href="/upload" class="text-ig-link hover:underline">buraya tıklayın</a>.</p>
+
+            <div x-show="tasks.length === 0" class="text-center py-12">
+                <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-inbox text-2xl text-ig-text-secondary"></i>
+                </div>
+                <p class="font-display font-semibold text-base mb-1">Kuyruk boş</p>
+                <p class="text-sm text-ig-text-secondary mb-4">Yükleme yok — yeni içerik mi eklemek istersin?</p>
+                <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Yeni içerik
+                </a>
             </div>
         </div>
     </div>
@@ -107,61 +107,34 @@ function queueManager() {
     return {
         tasks: [],
         loading: false,
-        autoRefresh: true,
-        refreshInterval: null,
-        
+        timer: null,
+
         async refreshQueue() {
             this.loading = true;
             try {
-                const response = await fetch('/api/queue/tasks');
-                const data = await response.json();
-                if (data.success) {
-                    this.tasks = data.tasks;
-                }
-            } catch (error) {
-                console.error('Queue refresh error:', error);
-            } finally {
-                this.loading = false;
-            }
+                const r = await fetch('/api/queue/tasks');
+                const d = await r.json();
+                if (d.success) this.tasks = d.tasks;
+            } catch (e) {}
+            finally { this.loading = false; }
         },
-        
-        getStatusText(task) {
-            const statusMap = {
-                'pending': 'Bekliyor',
-                'processing': 'İşleniyor',
-                'waiting': 'Upload için bekliyor',
-                'uploading': 'Yükleniyor',
-                'cooldown': 'Bekleme süresi',
-                'completed': 'Tamamlandı',
-                'failed': 'Başarısız'
-            };
-            return statusMap[task.status] || task.status;
+
+        getStatusText(t) {
+            return ({
+                pending: 'Bekliyor',
+                processing: 'İşleniyor',
+                waiting: 'Sırada',
+                uploading: 'Yükleniyor',
+                cooldown: 'Bekleme',
+                completed: 'Tamamlandı',
+                failed: 'Başarısız'
+            })[t.status] || t.status;
         },
-        
-        startAutoRefresh() {
-            if (this.refreshInterval) return;
-            this.refreshInterval = setInterval(() => {
-                if (this.autoRefresh) {
-                    this.refreshQueue();
-                }
-            }, 2000); // Her 2 saniyede bir yenile
-        },
-        
-        stopAutoRefresh() {
-            if (this.refreshInterval) {
-                clearInterval(this.refreshInterval);
-                this.refreshInterval = null;
-            }
-        },
-        
+
         init() {
             this.refreshQueue();
-            this.startAutoRefresh();
-            
-            // Cleanup on page unload
-            window.addEventListener('beforeunload', () => {
-                this.stopAutoRefresh();
-            });
+            this.timer = setInterval(() => this.refreshQueue(), 2000);
+            window.addEventListener('beforeunload', () => clearInterval(this.timer));
         }
     }
 }

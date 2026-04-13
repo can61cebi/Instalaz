@@ -1,14 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Sayfa Bulunamadı{% endblock %}
+{% block title %}404 — Bulunamadı{% endblock %}
 
 {% block content %}
-<div class="text-center py-20">
-    <h1 class="text-6xl font-bold ig-gradient-text">404</h1>
-    <h2 class="text-2xl font-semibold mt-4 mb-2">Sayfa Bulunamadı</h2>
-    <p class="text-ig-text-secondary mb-8">Aradığınız sayfa mevcut değil veya taşınmış olabilir.</p>
-    <a href="{{ url_for('index') }}" class="ig-button ig-gradient text-white">
-        Ana Sayfaya Dön
-    </a>
-</div>
+<section class="max-w-xl mx-auto px-4 py-24 text-center">
+    <div class="card-strong rounded-3xl p-10">
+        <div class="font-display font-bold text-7xl ig-gradient-text leading-none mb-3">404</div>
+        <h1 class="font-display font-semibold text-2xl mb-2">Sayfa bulunamadı</h1>
+        <p class="text-sm text-ig-text-secondary mb-6">
+            Aradığın şey yerinden oynamış olabilir. Geri dönüp tekrar denemek ister misin?
+        </p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Ana sayfa
+        </a>
+    </div>
+</section>
 {% endblock %}

@@ -1,14 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Sunucu Hatası{% endblock %}
+{% block title %}500 — Sunucu hatası{% endblock %}
 
 {% block content %}
-<div class="text-center py-20">
-    <h1 class="text-6xl font-bold text-ig-error">500</h1>
-    <h2 class="text-2xl font-semibold mt-4 mb-2">İç Sunucu Hatası</h2>
-    <p class="text-ig-text-secondary mb-8">Bir şeyler ters gitti. Teknik ekibimiz bilgilendirildi.</p>
-    <a href="{{ url_for('index') }}" class="ig-button bg-ig-error text-white">
-        Ana Sayfaya Dön
-    </a>
-</div>
+<section class="max-w-xl mx-auto px-4 py-24 text-center">
+    <div class="card-strong rounded-3xl p-10">
+        <div class="font-display font-bold text-7xl text-ig-error leading-none mb-3">500</div>
+        <h1 class="font-display font-semibold text-2xl mb-2">Bir şeyler ters gitti</h1>
+        <p class="text-sm text-ig-text-secondary mb-6">
+            Sunucuda beklenmeyen bir hata oluştu. Birkaç saniye sonra tekrar denersen genelde düzelir.
+        </p>
+        <div class="flex items-center justify-center gap-2">
+            <button onclick="location.reload()" class="btn btn-ghost">
+                <i class="fas fa-arrows-rotate"></i> Yenile
+            </button>
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Ana sayfa
+            </a>
+        </div>
+    </div>
+</section>
 {% endblock %}
