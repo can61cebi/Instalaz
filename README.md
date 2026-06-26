@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Let your content flow to Instagram the way it should.</strong><br>
-  Turn 4K videos and photos into Story, Reel and Post formats automatically. Run your direct messages in the same window — one studio for everything.
+  Turn 4K videos and photos into Story, Reel and Post formats automatically. Run your direct messages in the same window, with one studio for everything.
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/landing_page_new.png" alt="Instalaz — landing" width="860">
+  <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/landing_page_new.png" alt="Instalaz landing" width="860">
 </p>
 
 ---
@@ -22,41 +22,41 @@
 
 Instalaz is a self-hosted Flask application built on top of `instagrapi`. From a single panel it gives you:
 
-- **Upload studio** — automatic resize, crop, compression and queueing for Story (1080×1920), Reel (1080×1920) and Post (1080×1350).
-- **Inbox** — direct inbox + pending requests, thread read/write, photo/video sharing, starting new conversations.
-- **CDN bridge that never leaks to the browser** — Instagram media is served through your own server instead of exposing signed CDN URLs.
-- **Safety reflexes** — per-IP login throttling, per-account daily/hourly upload limits, optional proxy, rate limiting backed by Redis.
+- **Upload studio** with automatic resize, crop, compression and queueing for Story (1080×1920), Reel (1080×1920) and Post (1080×1350).
+- **Inbox** with direct inbox + pending requests, thread read/write, photo/video sharing, and the ability to start new conversations.
+- **CDN bridge that never leaks to the browser** because Instagram media is served through your own server instead of exposing signed CDN URLs.
+- **Safety reflexes** such as per-IP login throttling, per-account daily/hourly upload limits, optional proxy, and rate limiting backed by Redis.
 
-After installation the app runs at `http://localhost:5000`; the dark-mode Tailwind + Alpine UI uses a single responsive layout for mobile and desktop.
+After installation the app runs at `http://localhost:5000`. The dark-mode Tailwind + Alpine UI uses a single responsive layout for mobile and desktop.
 
 ---
 
 ## Highlights
 
 ### Content publishing
-- **Multi-format** — images (`jpg/jpeg/png/heic/heif/raw/tiff/bmp`) and video (`mp4/mov/avi/mkv/webm/m4v`); 2 GB per request.
-- **4K-aware processor** — EXIF orientation, sharpening, progressive JPEG; auto crop/resize to the Story/Reel/Post target.
-- **Video pipeline** — FFmpeg first (`libx264`, CRF 23, `slow` preset, 10 Mbps); MoviePy fallback when FFmpeg is missing.
-- **Queue** — a background worker publishes at a human-paced 3–15 min per-account cadence.
-- **Watermark (optional)** — text stamping via `MediaProcessor.add_watermark`.
+- **Multi-format** support for images (`jpg/jpeg/png/heic/heif/raw/tiff/bmp`) and video (`mp4/mov/avi/mkv/webm/m4v`), with a 2 GB limit per request.
+- **4K-aware processor** with EXIF orientation, sharpening, and progressive JPEG support, plus auto crop/resize to Story/Reel/Post targets.
+- **Video pipeline** that uses FFmpeg first (`libx264`, CRF 23, `slow` preset, 10 Mbps) and falls back to MoviePy when FFmpeg is missing.
+- **Queue** processing through a background worker that publishes at a human-paced 3–15 min per-account cadence.
+- **Watermark (optional)** support for text stamping via `MediaProcessor.add_watermark`.
 
 ### Direct messages
-- Inbox + pending requests, unread badge, last-message preview.
-- Opens text, photo, video, voice notes, post/reel reshares (`xma_share`) and link cards.
-- Send text or photo/video into a thread, start new conversations (multi-recipient); existing threads are reused via `direct_thread_by_participants`.
-- ~5 s message polling on the active thread, ~15 s thread-list polling, automatic seen-marking.
+- Inbox + pending requests, unread badge, and last-message preview.
+- Opens text, photo, video, voice notes, post/reel reshares (`xma_share`), and link cards.
+- Send text or photo/video into a thread and start new conversations (multi-recipient). Existing threads are reused via `direct_thread_by_participants`.
+- ~5 s message polling on the active thread, ~15 s thread-list polling, and automatic seen-marking.
 - All Instagram CDN media is served through a server-side proxy (`/api/dm/media-proxy`).
 
 ### Instagram compatibility layer
-- Saved sessions are refreshed with a current Instagram Android UA on every app boot — this avoids the `HTTP 467 Unsupported` response Instagram returns to stale clients.
+- Saved sessions are refreshed with a current Instagram Android UA on every app boot. This avoids the `HTTP 467 Unsupported` response Instagram returns to stale clients.
 - A `MediaXma.video_url` shim keeps inbox parsing alive when share cards arrive without a `target_url`.
-- 2FA-supported login; even if the post-login flow returns 400, the session is accepted as long as `sessionid` landed.
+- 2FA-supported login. Even if the post-login flow returns 400, the session is accepted as long as `sessionid` landed.
 
 ### Security & limits
-- Per-IP login throttling (5 attempts / hour), per-account 15 / hour and 50 / day upload limits, 3 min minimum interval.
-- Optional Redis cache (`REDIS_URL`), transparent in-memory fallback when Redis is unreachable.
+- Per-IP login throttling (5 attempts / hour), per-account 15 / hour and 50 / day upload limits, and a 3 min minimum interval.
+- Optional Redis cache (`REDIS_URL`) with a transparent in-memory fallback when Redis is unreachable.
 - Optional outbound proxy (`PROXY_URL`).
-- Host whitelist on the media proxy (`cdninstagram.com`, `fbcdn.net`, `instagram.com`) — reduces SSRF exposure.
+- Host whitelist on the media proxy (`cdninstagram.com`, `fbcdn.net`, `instagram.com`), which reduces SSRF exposure.
 
 ---
 
@@ -65,22 +65,22 @@ After installation the app runs at `http://localhost:5000`; the dark-mode Tailwi
 <p align="center">
   <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/dashboard_new.png" alt="Dashboard" width="820">
 </p>
-<p align="center"><em>Dashboard — account status, quick actions, queue feed, stats and pro tips.</em></p>
+<p align="center"><em>Dashboard with account status, quick actions, queue feed, stats and pro tips.</em></p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/upload_page_new.png" alt="New content" width="820">
 </p>
-<p align="center"><em>New content — content type picker, drag-and-drop media, caption and queue-add.</em></p>
+<p align="center"><em>New content with a content type picker, drag-and-drop media, caption field, and queue-add flow.</em></p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/queue_new.png" alt="Queue" width="820">
 </p>
-<p align="center"><em>Queue — live status (pending → processing → uploading → completed/failed).</em></p>
+<p align="center"><em>Queue with live status updates (pending → processing → uploading → completed/failed).</em></p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/can61cebi/Instalaz/refs/heads/main/images/messages_new.png" alt="Messages" width="820">
 </p>
-<p align="center"><em>Messages — inbox + requests, thread detail and new-conversation flow.</em></p>
+<p align="center"><em>Messages with inbox + requests, thread detail, and new-conversation flow.</em></p>
 
 ---
 
@@ -125,10 +125,10 @@ The app listens on `http://localhost:5000`.
 
 ## Usage flow
 
-1. Open `http://localhost:5000` → sign in with Instagram username/password (the 2FA prompt appears when needed).
-2. On **New content**, pick Story / Reel / Post, drop the media, add a caption, hit *Add to queue*.
+1. Open `http://localhost:5000` and sign in with Instagram username/password (the 2FA prompt appears when needed).
+2. On **New content**, pick Story / Reel / Post, drop the media, add a caption, and click *Add to queue*.
 3. On **Queue**, track the worker's tasks live.
-4. On **Messages**, open the inbox, pick a thread, send text or photo/video. Use *New message* to start a conversation by username.
+4. On **Messages**, open the inbox, pick a thread, and send text or photo/video. Use *New message* to start a conversation by username.
 
 ---
 
@@ -216,14 +216,14 @@ Tunable constants live in the `Config` class at the top of `app.py`.
 ## Security notes
 
 - `sessions/instagram_sessions.json` contains live Instagram cookies and device data. **Never commit it.** It is gitignored by default.
-- Do not expose this app on a public network without an additional auth layer — there is no multi-tenant access control.
+- Do not expose this app on a public network without an additional auth layer, because there is no multi-tenant access control.
 - When widening the CDN proxy whitelist, weigh the SSRF impact.
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ## Contact
 
